@@ -229,18 +229,23 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < lead.exportArr.length;i++) {
 				if(i == index) continue;
 				if(lead.exportArr[i]) {
-					var nextIndexX : int;
-					var nextIndexY : int;
+					var nextIndexX : int = arrIndexX;
+					var nextIndexY : int = arrIndexY;
 					switch(i) {
-						case 0:{nextIndexX = arrIndexX - 1;};break;
-						case 1:{nextIndexY = arrIndexY - 1;};break;
-						case 2:{nextIndexX = arrIndexX + 1;};break;
-						case 3:{nextIndexY = arrIndexY + 1;};break;
+						case 0:{nextIndexX --;};break;
+						case 1:{nextIndexY --;};break;
+						case 2:{nextIndexX ++;};break;
+						case 3:{nextIndexY ++;};break;
 					}
 					
 					if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
 						0 <= nextIndexY && nextIndexY < ROW_COUNT) {
-						deepFind(nextIndexX,nextIndexY,i);
+						var oppIndex : int = i+2;
+						if(oppIndex > lead.exportArr.length-1) {
+							oppIndex -= lead.exportArr.length;
+						}
+						
+						deepFind(nextIndexX,nextIndexY,oppIndex);
 						trace(nextIndexX + "      " + nextIndexY + "      " + i);
 					}
 				}
