@@ -18,7 +18,7 @@ package cn.sftech.www.object
 		public function Fire()
 		{
 			body = new FireBody();
-			body.y = 23;
+			body.y = 22;
 			addChild(body);
 			body.gotoAndPlay(MathUtil.random(0,4)*3+1);
 //			this.backgroundImage = FireBody;

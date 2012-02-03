@@ -79,6 +79,11 @@ package cn.sftech.www.object
 			addChild(this.body);
 		}
 		
+		public function get type() : uint
+		{
+			return _type;
+		}
+		
 		public function rotationLead(effect : SFEffectBase) : void
 		{
 			var tempFlag : Boolean = exportArr[exportArr.length-1];
