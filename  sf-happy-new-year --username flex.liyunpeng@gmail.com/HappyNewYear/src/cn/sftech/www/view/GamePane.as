@@ -1,11 +1,15 @@
 package cn.sftech.www.view
 {
 	import cn.sftech.www.effect.base.SFEffectBase;
+	import cn.sftech.www.events.KindleEndEvent;
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
 	import cn.sftech.www.util.MathUtil;
 	
 	import flash.events.MouseEvent;
+	import flash.events.TimerEvent;
+	import flash.geom.Point;
+	import flash.utils.Timer;
 
 	public class GamePane extends SFContainer
 	{
@@ -13,11 +17,11 @@ package cn.sftech.www.view
 		
 		public var firePane : SFContainer;
 		
-		private const BASE_X : uint = 90;
+		private const BASE_X : uint = 40;
 		
 		private const BASE_Y : uint = 298;
 		
-		private const COL_COUNT : uint = 6;
+		private const COL_COUNT : uint = 8;
 		
 		private const ROW_COUNT : uint = 9;
 		//------ Config --------------------------------
@@ -28,9 +32,23 @@ package cn.sftech.www.view
 		 */		
 		private var leadColorArr : Vector.<Vector.<uint>>;
 		/**
+		 * 记录已检测通过的导火线索引
+		 */		
+		private var fireLeadArr : Vector.<uint> = new Vector.<uint>;
+		
+		/**
 		 * 当前颜色标记
 		 */		
 		private var currentColorFlag : uint = 1;
+		
+		/**
+		 * 标记当前是否在点燃状态
+		 */
+		private var isFiring : Boolean = false;
+		/**
+		 * 准备点火倒计时
+		 */		
+		private var fireTimer : Timer = new Timer(1000,1);
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
 		
@@ -104,6 +122,7 @@ package cn.sftech.www.view
 		private function initEvent() : void
 		{
 			this.addEventListener(MouseEvent.CLICK,clickLeadHandle);
+			fireTimer.addEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
 		}
 		
 		/**
@@ -115,9 +134,10 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var lead : Lead = new Lead();
 				lead.type = 1;
-				lead.x = BASE_X - Lead.LEAD_SIZE;
+				lead.x = BASE_X;
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
 				lead.firePane = firePane;
+				leadArr[i][0] = lead;
 				leadPane.addChild(lead);
 				
 				var fire : Fire = new Fire();
@@ -135,9 +155,10 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var lead : Lead = new Lead();
 				lead.type = 1;
-				lead.x = BASE_X + Lead.LEAD_SIZE*COL_COUNT;
+				lead.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT-1);
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
 				lead.firePane = firePane;
+				leadArr[i][COL_COUNT-1] = lead;
 				leadPane.addChild(lead);
 			}
 		}
@@ -150,9 +171,9 @@ package cn.sftech.www.view
 		{
 			if(tempMap) {
 				for(var a : int = 0;a < ROW_COUNT;a++) {
-					for(var b : int = 0;b < COL_COUNT;b++) {
+					for(var b : int = 1;b < COL_COUNT-1;b++) {
 						var leadt : Lead = new Lead();
-						leadt.type = tempMap[a][b];
+						leadt.type = tempMap[a][b-1];
 						leadt.x = BASE_X + Lead.LEAD_SIZE*b;
 						leadt.y = BASE_Y + Lead.LEAD_SIZE*a;
 						leadt.firePane = firePane;
@@ -167,7 +188,7 @@ package cn.sftech.www.view
 			var temp : String;
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				temp = "["
-				for(var j : int = 0;j < COL_COUNT;j++) {
+				for(var j : int = 1;j < COL_COUNT-2;j++) {
 					var lead : Lead = new Lead();
 					var tmpFlag : uint = MathUtil.random(1,17);
 					if(tmpFlag>9) {
@@ -200,10 +221,13 @@ package cn.sftech.www.view
 		 */		
 		private function clickLeadHandle(event : MouseEvent) : void
 		{
+			if(isFiring) return;
 			if(this.mouseX < BASE_X || this.mouseX > BASE_X + Lead.LEAD_SIZE*COL_COUNT ||
 				this.mouseY < BASE_Y || this.mouseY > BASE_Y + Lead.LEAD_SIZE*ROW_COUNT) {
 				return;
 			}
+			
+			fireTimer.stop();
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
 			lead.rotationLead(rotationEffect);
@@ -248,6 +272,11 @@ package cn.sftech.www.view
 			checkEntrance();
 			checkExport();
 			colorSet();
+			
+			if(fireLeadArr.length>0) {
+				fireTimer.reset();
+				fireTimer.start();
+			}
 		}
 		
 		/**
@@ -293,28 +322,104 @@ package cn.sftech.www.view
 			}
 		}
 		
+		private function startKindle(event : TimerEvent) : void
+		{
+			isFiring = true;
+			currentColorFlag = Lead.GREEN_COLOR;
+			for(var i : int = 0;i < fireLeadArr.length;i++) {
+				deepFind(0,fireLeadArr[i],0);
+			}
+		}
+		
+//		private function kindelLead(lead : Lead) : void
+//		{
+//			fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
+//			fire.kindleTo(new Point(this.x,this.y));
+//		}
+		
+		public function kindleFire(fire : Fire,index : uint) : void
+		{
+		}
+		
+//		private function kindleCenter(event : KindleEndEvent) : void
+//		{
+//			//			var fire : Fire = event.target;
+//			event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
+//			
+//			for(var i : int = 0;i < exportArr.length;i++) {
+//				//如果出口索引就是入口索引，则跳过；
+//				if(i == entranceIndex) continue;
+//				if(exportArr[i]) {
+//					var toPoint : Point;
+//					switch(i) {
+//						case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
+//						case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
+//						case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
+//						case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
+//					}
+//					
+//					var fire : Fire = new Fire();
+//					firePane.addChild(fire);
+//					fire.kindleTo(toPoint);
+//				}
+//			}
+//		}
+		
 		/**
 		 * 深度查找方法
 		 * 
 		 */		
-		private function deepFind(arrIndexX : int,arrIndexY : int,index : int) : void
+		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire=null) : void
 		{
 			var lead : Lead = leadArr[arrIndexY][arrIndexX];
-			var leadColor : uint = leadColorArr[arrIndexY][arrIndexX];
 			//如果当前入口索引是通的
 				
 			//如果当前检测块的颜色已经是检证过的 则返回
 			
-			if(lead.exportArr[index]) { 
+			if(lead.exportArr[index]) { //如果和上一个导火线对上了
 				if(currentColorFlag == Lead.RED_COLOR) {
 					if(leadColorArr[arrIndexY][arrIndexX] == Lead.RED_COLOR ||
 						leadColorArr[arrIndexY][arrIndexX] == Lead.ORANGE_COLOR) return;
 					
 					if(leadColorArr[arrIndexY][arrIndexX] == Lead.YELLOW_COLOR) {
 						leadColorArr[arrIndexY][arrIndexX] = Lead.ORANGE_COLOR;
+						fireLeadArr.push(arrIndexY);
+						
 					} else {
 						leadColorArr[arrIndexY][arrIndexX] = Lead.RED_COLOR;
 					}
+				} else if(currentColorFlag == Lead.GREEN_COLOR) {
+					//查找到已经燃烧的块
+					if(leadColorArr[arrIndexY][arrIndexX] == Lead.GREEN_COLOR) {
+						
+						return;
+					}
+					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
+					
+					fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,
+						function kindleCenter(event : KindleEndEvent):void{
+							event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
+							
+							for(var i : int = 0;i < lead.exportArr.length;i++) {
+								//如果出口索引就是入口索引，则跳过；
+								if(i == index) continue;
+								if(lead.exportArr[i]) {
+									var toPoint : Point;
+									switch(i) {
+										case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
+										case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
+										case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
+										case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
+									}
+//								
+									var fire : Fire = new Fire();
+									firePane.addChild(fire);
+									fire.kindleTo(toPoint);
+								}
+							}
+						});
+					fire.kindleTo(new Point(lead.x,lead.y));
+//					kindelLead(lead);
 				} else {
 					if(leadColorArr[arrIndexY][arrIndexX] == currentColorFlag) return;
 					
@@ -349,8 +454,11 @@ package cn.sftech.www.view
 						}
 					}
 				}
+			} else { //如果没有和上一个导火线对上
+				
 			}
 		}
+		
 		/*
 		检测方法：
 		先从入口遍历整个导火索数组，将所有入口的标记为黄色
