@@ -6,6 +6,8 @@ package cn.sftech.www.object
 	import cn.sftech.www.util.MathUtil;
 	import cn.sftech.www.view.SFMovieClip;
 	
+	import com.greensock.easing.Linear;
+	
 	import flash.display.MovieClip;
 	import flash.geom.Point;
 	
@@ -14,6 +16,8 @@ package cn.sftech.www.object
 		private var body : MovieClip;
 		
 		private var fireEffect : SFMoveEffect = new SFMoveEffect();
+		
+		public var dirIndex : uint;
 		
 		public function Fire()
 		{
@@ -26,10 +30,13 @@ package cn.sftech.www.object
 			super();
 			fireEffect.target = this;
 			fireEffect.duration = GameConfig.KINDLE_SPEED;
-			fireEffect.vars.onComplete(function onCompleteHandle() : void
-			{
+			fireEffect.vars.onComplete(KindleEnd);
+			fireEffect.vars.ease(Linear.easeNone);
+		}
+		
+		private function KindleEnd() : void
+		{
 				this.dispatchEvent(new KindleEndEvent());
-			});
 		}
 		
 		public function kindleTo(point : Point) : void
