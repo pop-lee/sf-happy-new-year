@@ -5,7 +5,7 @@ package cn.sftech.www.model
 		/**
 		 * 烟火燃烧速度（单位：秒）
 		 */		
-		public static const KINDLE_SPEED : Number = 0.1;
+		public static const KINDLE_SPEED : Number = 1;
 		
 		public function GameConfig()
 		{

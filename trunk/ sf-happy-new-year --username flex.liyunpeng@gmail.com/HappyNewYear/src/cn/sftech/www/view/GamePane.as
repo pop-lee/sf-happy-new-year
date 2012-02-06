@@ -54,10 +54,20 @@ package cn.sftech.www.view
 		
 		////////////////////
 		private var tempMap : Array = [
-				[1,1,2,2,2,2],
+//				[1,1,2,2,2,2],
+//				[3,1,1,1,2,1],
+//				[2,2,2,4,1,2],
+//				[1,1,1,1,1,1],
+//				[2,2,2,1,3,2],
+//				[4,4,1,2,1,2],
+//				[1,1,2,1,2,2],
+//				[2,1,2,1,2,3],
+//				[1,3,1,1,2,1]
+			
+				[3,1,1,1,1,1],
 				[3,1,1,1,2,1],
 				[2,2,2,4,1,2],
-				[1,1,1,1,1,1],
+				[1,1,1,1,1,2],
 				[2,2,2,1,3,2],
 				[4,4,1,2,1,2],
 				[1,1,2,1,2,2],
@@ -188,7 +198,7 @@ package cn.sftech.www.view
 			var temp : String;
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				temp = "["
-				for(var j : int = 1;j < COL_COUNT-2;j++) {
+				for(var j : int = 1;j < COL_COUNT-1;j++) {
 					var lead : Lead = new Lead();
 					var tmpFlag : uint = MathUtil.random(1,17);
 					if(tmpFlag>9) {
@@ -288,7 +298,7 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				if(leadArr[i][0].exportArr[0]) {
 					currentColorFlag = Lead.YELLOW_COLOR;
-					deepFind(0,i,0);
+					changeColor(0,i,0);
 //					trace(i);
 				}
 			}
@@ -303,7 +313,7 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				if(leadArr[i][COL_COUNT-1].exportArr[2]) {
 					currentColorFlag = Lead.RED_COLOR;
-					deepFind(COL_COUNT-1,i,2);
+					changeColor(COL_COUNT-1,i,2);
 					//					trace(i);
 				}
 			}
@@ -327,7 +337,12 @@ package cn.sftech.www.view
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
 			for(var i : int = 0;i < fireLeadArr.length;i++) {
-				deepFind(0,fireLeadArr[i],0);
+				var fire : Fire = new Fire();
+				fire.x = leadArr[fireLeadArr[i]][0].x;
+				fire.y = leadArr[fireLeadArr[i]][0].y;
+				fire.dirIndex = 0;
+				firePane.addChild(fire);
+				changeColor(0,fireLeadArr[i],0,fire);
 			}
 		}
 		
@@ -369,7 +384,7 @@ package cn.sftech.www.view
 		 * 深度查找方法
 		 * 
 		 */		
-		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire=null) : void
+		private function changeColor(arrIndexX : int,arrIndexY : int,index : int,fire : Fire=null) : void
 		{
 			var lead : Lead = leadArr[arrIndexY][arrIndexX];
 			//如果当前入口索引是通的
@@ -383,7 +398,9 @@ package cn.sftech.www.view
 					
 					if(leadColorArr[arrIndexY][arrIndexX] == Lead.YELLOW_COLOR) {
 						leadColorArr[arrIndexY][arrIndexX] = Lead.ORANGE_COLOR;
-						fireLeadArr.push(arrIndexY);
+						if(arrIndexX == 0) {
+							fireLeadArr.push(arrIndexY);
+						}
 						
 					} else {
 						leadColorArr[arrIndexY][arrIndexX] = Lead.RED_COLOR;
@@ -396,6 +413,14 @@ package cn.sftech.www.view
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					
+//					kindelLead(lead);
+				} else {
+					if(leadColorArr[arrIndexY][arrIndexX] == currentColorFlag) return;
+					
+					leadColorArr[arrIndexY][arrIndexX] = currentColorFlag;
+				}
+				
+				if(fire) {
 					fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,
 						function kindleCenter(event : KindleEndEvent):void{
 							event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
@@ -406,56 +431,101 @@ package cn.sftech.www.view
 								if(lead.exportArr[i]) {
 									var toPoint : Point;
 									switch(i) {
-										case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
-										case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
-										case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
-										case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
+										case 0:{toPoint = new Point(lead.x,lead.y);};break;
+										case 1:{toPoint = new Point(lead.x+lead.width/2,lead.y-lead.height/2);};break;
+										case 2:{toPoint = new Point(lead.x+lead.width,lead.y);};break;
+										case 3:{toPoint = new Point(lead.x+lead.width/2,lead.y+lead.height/2);};break;
 									}
-//								
+									//
 									var fire : Fire = new Fire();
+									fire.x = event.target.x;
+									fire.y = event.target.y;
+									fire.dirIndex = i;
+									fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,
+										function kindleEnd(event : KindleEndEvent) : void
+										{
+											event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleEnd);
+											if(arrIndexX == 0 && arrIndexY == 3) {
+												trace("a");
+											}
+											deepFind(arrIndexX,arrIndexY,event.target.dirIndex,event.target as Fire);
+										});
 									firePane.addChild(fire);
 									fire.kindleTo(toPoint);
 								}
 							}
+							firePane.removeChild(event.target as Fire);
 						});
-					fire.kindleTo(new Point(lead.x,lead.y));
-//					kindelLead(lead);
+					fire.kindleTo(new Point(lead.x+lead.width/2,lead.y));
 				} else {
-					if(leadColorArr[arrIndexY][arrIndexX] == currentColorFlag) return;
-					
-					leadColorArr[arrIndexY][arrIndexX] = currentColorFlag;
-				}
-			
-				for(var i : int = 0;i < lead.exportArr.length;i++) {
-					if(i == index) continue;
-					if(lead.exportArr[i]) {
-						var nextIndexX : int = arrIndexX;
-						var nextIndexY : int = arrIndexY;
-						switch(i) {
-							case 0:{nextIndexX --;};break;
-							case 1:{nextIndexY --;};break;
-							case 2:{nextIndexX ++;};break;
-							case 3:{nextIndexY ++;};break;
-						}
+					for(var i : int = 0;i < lead.exportArr.length;i++) {
+						if(i == index) continue;
 						
-						if(nextIndexX == 5 && nextIndexY == 1) {
-							trace("a");
-						}
-						
-						if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
-							0 <= nextIndexY && nextIndexY < ROW_COUNT) {
-							var oppIndex : int = i+2;
-							if(oppIndex > lead.exportArr.length-1) {
-								oppIndex -= lead.exportArr.length;
-							}
-							
-							deepFind(nextIndexX,nextIndexY,oppIndex);
-							trace(nextIndexX + "      " + nextIndexY + "      " + i);
-						}
+						deepFind(arrIndexX,arrIndexY,i);
+//						if(lead.exportArr[i]) {
+//							var nextIndexX : int = arrIndexX;
+//							var nextIndexY : int = arrIndexY;
+//							switch(i) {
+//								case 0:{nextIndexX --;};break;
+//								case 1:{nextIndexY --;};break;
+//								case 2:{nextIndexX ++;};break;
+//								case 3:{nextIndexY ++;};break;
+//							}
+//							
+//							if(nextIndexX == 5 && nextIndexY == 1) {
+//								trace("a");
+//							}
+//							
+//							if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
+//								0 <= nextIndexY && nextIndexY < ROW_COUNT) {
+//								var oppIndex : int = i+2;
+//								if(oppIndex > lead.exportArr.length-1) {
+//									oppIndex -= lead.exportArr.length;
+//								}
+//								
+//								changeColor(nextIndexX,nextIndexY,oppIndex);
+//								trace(nextIndexX + "      " + nextIndexY + "      " + i);
+//							}
+//						}
 					}
 				}
+			
 			} else { //如果没有和上一个导火线对上
+				if(fire) {
+					firePane.removeChild(fire);
+				}
+			}
+		}
+		
+		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire = null) : void
+		{
+			if(arrIndexX == 0 && arrIndexY == 3) {
+				trace("a");
+			}
+			
+			var lead : Lead = leadArr[arrIndexY][arrIndexX];
+			
+			if(lead.exportArr[index]) {
+				var nextIndexX : int = arrIndexX;
+				var nextIndexY : int = arrIndexY;
+				switch(index) {
+					case 0:{nextIndexX --;};break;
+					case 1:{nextIndexY --;};break;
+					case 2:{nextIndexX ++;};break;
+					case 3:{nextIndexY ++;};break;
+				}
 				
+				if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
+					0 <= nextIndexY && nextIndexY < ROW_COUNT) {
+					var oppIndex : int = index+2;
+					if(oppIndex > lead.exportArr.length-1) {
+						oppIndex -= lead.exportArr.length;
+					}
+					
+					changeColor(nextIndexX,nextIndexY,oppIndex,fire);
+					trace(nextIndexX + "      " + nextIndexY + "      " + index);
+				}
+			} else {
 			}
 		}
 		
