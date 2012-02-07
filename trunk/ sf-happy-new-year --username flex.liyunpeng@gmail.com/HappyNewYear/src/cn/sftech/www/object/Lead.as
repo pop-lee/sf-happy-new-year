@@ -10,7 +10,7 @@ package cn.sftech.www.object
 
 	public class Lead extends SFMovieClip
 	{
-		public var firePane : SFContainer;
+//		public var firePane : SFContainer;
 		
 		private var body : MovieClip;
 		
@@ -114,36 +114,36 @@ package cn.sftech.www.object
 			return _currentColorFlag;
 		}
 		
-		public function kindleFire(fire : Fire,index : uint) : void
-		{
-			entranceIndex = index;
-			fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
-			fire.kindleTo(new Point(this.x,this.y));
-		}
-		
-		private function kindleCenter(event : KindleEndEvent) : void
-		{
-//			var fire : Fire = event.target;
-			event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
-			
-			for(var i : int = 0;i < exportArr.length;i++) {
-				//如果出口索引就是入口索引，则跳过；
-				if(i == entranceIndex) continue;
-				if(exportArr[i]) {
-					var toPoint : Point;
-					switch(i) {
-						case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
-						case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
-						case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
-						case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
-					}
-					
-					var fire : Fire = new Fire();
-					firePane.addChild(fire);
-					fire.kindleTo(toPoint);
-				}
-			}
-		}
+//		public function kindleFire(fire : Fire,index : uint) : void
+//		{
+//			entranceIndex = index;
+//			fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
+//			fire.kindleTo(new Point(this.x,this.y));
+//		}
+//		
+//		private function kindleCenter(event : KindleEndEvent) : void
+//		{
+////			var fire : Fire = event.target;
+//			event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
+//			
+//			for(var i : int = 0;i < exportArr.length;i++) {
+//				//如果出口索引就是入口索引，则跳过；
+//				if(i == entranceIndex) continue;
+//				if(exportArr[i]) {
+//					var toPoint : Point;
+//					switch(i) {
+//						case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
+//						case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
+//						case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
+//						case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
+//					}
+//					
+//					var fire : Fire = new Fire();
+//					firePane.addChild(fire);
+//					fire.kindleTo(toPoint);
+//				}
+//			}
+//		}
 		
 	}
 }
