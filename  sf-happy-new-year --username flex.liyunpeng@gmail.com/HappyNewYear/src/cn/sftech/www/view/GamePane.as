@@ -1,10 +1,13 @@
 package cn.sftech.www.view
 {
+	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.KindleEndEvent;
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
 	import cn.sftech.www.util.MathUtil;
+	
+	import com.greensock.easing.Quart;
 	
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
@@ -15,11 +18,15 @@ package cn.sftech.www.view
 	{
 		private var leadPane : SFContainer;
 		
+		private var coverPane : CoverPane;
+		
 		public var firePane : SFContainer;
 		
 		private const BASE_X : uint = 40;
 		
 		private const BASE_Y : uint = 298;
+		
+		private const CRE_Y : uint = 190;
 		
 		private const COL_COUNT : uint = 8;
 		
@@ -53,7 +60,7 @@ package cn.sftech.www.view
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
 		
 		////////////////////
-		private var tempMap : Array = [
+		private var mapData : Array = [
 //				[1,1,2,2,2,2],
 //				[3,1,1,1,2,1],
 //				[2,2,2,4,1,2],
@@ -113,15 +120,21 @@ package cn.sftech.www.view
 			leadPane.percentWidth = 100;
 			leadPane.percentHeight = 100;
 			leadPane.backgroundAlpha = 0;
+			
+			coverPane = new CoverPane();
+			coverPane.mouseEnabled = false;
+			
 			firePane = new SFContainer();
 			firePane.percentWidth = 100;
 			firePane.percentHeight = 100;
 			firePane.backgroundAlpha = 0;
 			this.addChild(leadPane);
+			this.addChild(coverPane);
 			this.addChild(firePane);
 			createEntrance();
 			createExport();
-			createLead();
+//			createLead();
+			createLeadMap();
 			
 			checkGame();
 		}
@@ -146,7 +159,6 @@ package cn.sftech.www.view
 				lead.type = 1;
 				lead.x = BASE_X;
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
-				lead.firePane = firePane;
 				leadArr[i][0] = lead;
 				leadPane.addChild(lead);
 				
@@ -167,7 +179,6 @@ package cn.sftech.www.view
 				lead.type = 1;
 				lead.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT-1);
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
-				lead.firePane = firePane;
 				leadArr[i][COL_COUNT-1] = lead;
 				leadPane.addChild(lead);
 			}
@@ -179,14 +190,13 @@ package cn.sftech.www.view
 		 */		
 		private function createLead() : void
 		{
-			if(tempMap) {
+			if(mapData) {
 				for(var a : int = 0;a < ROW_COUNT;a++) {
 					for(var b : int = 1;b < COL_COUNT-1;b++) {
 						var leadt : Lead = new Lead();
-						leadt.type = tempMap[a][b-1];
+						leadt.type = mapData[a][b-1];
 						leadt.x = BASE_X + Lead.LEAD_SIZE*b;
 						leadt.y = BASE_Y + Lead.LEAD_SIZE*a;
-						leadt.firePane = firePane;
 						leadPane.addChild(leadt);
 						leadArr[a][b] = leadt;
 					}
@@ -213,7 +223,6 @@ package cn.sftech.www.view
 //					lead.type = MathUtil.random(1,5);
 					lead.x = BASE_X + Lead.LEAD_SIZE*j;
 					lead.y = BASE_Y + Lead.LEAD_SIZE*i;
-					lead.firePane = firePane;
 					leadPane.addChild(lead);
 					leadArr[i][j] = lead;
 					temp += lead.type + ",";
@@ -222,6 +231,98 @@ package cn.sftech.www.view
 				trace(temp);
 				temp = "";
 			}
+		}
+		
+		private function createLeadMap() : void
+		{
+			for(var j : int = 1;j < COL_COUNT-1;j ++) {
+				for(var i : int = ROW_COUNT-1;i >= 0;i --) {
+					if(leadArr[i][j] == null) {
+						createLead4Column(j,i);
+//						hasBlank = true;
+						break;
+					}
+				}
+				
+//				for(var m : int = ROW_COUNT-1;m >= 0;m --) {
+//					createLeadEffect(leadArr[m][j],j,m);
+//				}
+			}
+			
+		}
+		
+		private function createLeadEffect(lead : Lead,indexX : uint,indexY: uint) : void
+		{
+//			lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
+//			lead.y = BASE_Y + Lead.LEAD_SIZE*indexY;
+			
+			var moveEffect : SFMoveEffect = new SFMoveEffect();
+			moveEffect.target = lead;
+			moveEffect.duration = (BASE_Y + Lead.LEAD_SIZE*indexY - lead.y)/500 + 0.3;
+			moveEffect.vars.ease(Quart.easeIn);
+			moveEffect.yTo = BASE_Y + Lead.LEAD_SIZE*indexY;
+			moveEffect.play();
+		}
+		
+		private function createLead4Column(indexX : uint,indexY : uint) : void
+		{
+			var blankBlockCount : uint = 0;
+			if(mapData) { //如果有现有地图数据
+				blankBlockCount = ROW_COUNT;
+				for(var a : int = ROW_COUNT-1;a >= 0; a--) {
+					var lead : Lead = new Lead();
+					if(indexY == 8 && indexX == 6) {
+						trace(indexY + " " + indexX);
+					}
+					lead.type = mapData[a][indexX-1];
+					lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
+					lead.y = CRE_Y;
+					leadArr[a][indexX] = lead;
+//					leadPane.addChild(lead);
+				}
+			} else { //如果没有现有地图数据
+				//向下移动现有的导火线
+				for(var i : int = indexY;i >= 0;i--) {
+					if(leadArr[i][indexX] == null) {
+						blankBlockCount ++;
+					} else { 
+						leadArr[i+blankBlockCount][indexX] = leadArr[i][indexX];
+						leadArr[i][indexX] = null;
+						createLeadEffect(leadArr[i][indexX],indexX,i);
+					}
+				}
+				
+				//创建地图中空挡的导火线
+				for(var k : int = blankBlockCount-1;k >= 0; k--) {
+					var creLead : Lead = new Lead();
+					var tmpFlag : uint = MathUtil.random(1,17);
+					if(tmpFlag>9) {
+						creLead.type = 1;
+					} else if(tmpFlag > 2) {
+						creLead.type = 2;
+					} else if(tmpFlag > 1) {
+						creLead.type = 3;
+					} else {
+						creLead.type = 4;
+					}
+					creLead.x = BASE_X + Lead.LEAD_SIZE*indexX;
+					creLead.y = CRE_Y;
+					
+					leadArr[k][indexX] = creLead;
+//					leadPane.addChild(creLead);
+				}
+			}
+			
+			var _createTimer : Timer = new Timer(170,blankBlockCount);
+			_createTimer.addEventListener(TimerEvent.TIMER,
+				function createBlockTimerHandle(event : TimerEvent):void {
+					var _createTimer : Timer = event.currentTarget as Timer;
+					var iy : uint = _createTimer.repeatCount - _createTimer.currentCount;
+					var curlead : Lead = leadArr[iy][indexX];
+					leadPane.addChild(curlead);
+					createLeadEffect(curlead,indexX,iy);
+				});
+			_createTimer.start();
 		}
 		
 		/**
@@ -408,10 +509,13 @@ package cn.sftech.www.view
 				} else if(currentColorFlag == Lead.GREEN_COLOR) {
 					//查找到已经燃烧的块
 					if(leadColorArr[arrIndexY][arrIndexX] == Lead.GREEN_COLOR) {
-						
+						if(fire) {
+							firePane.removeChild(fire);
+						}
 						return;
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
+					leadArr[arrIndexY][arrIndexX].currentColorFlag = Lead.GREEN_COLOR;
 					
 //					kindelLead(lead);
 				} else {
@@ -462,31 +566,6 @@ package cn.sftech.www.view
 						if(i == index) continue;
 						
 						deepFind(arrIndexX,arrIndexY,i);
-//						if(lead.exportArr[i]) {
-//							var nextIndexX : int = arrIndexX;
-//							var nextIndexY : int = arrIndexY;
-//							switch(i) {
-//								case 0:{nextIndexX --;};break;
-//								case 1:{nextIndexY --;};break;
-//								case 2:{nextIndexX ++;};break;
-//								case 3:{nextIndexY ++;};break;
-//							}
-//							
-//							if(nextIndexX == 5 && nextIndexY == 1) {
-//								trace("a");
-//							}
-//							
-//							if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
-//								0 <= nextIndexY && nextIndexY < ROW_COUNT) {
-//								var oppIndex : int = i+2;
-//								if(oppIndex > lead.exportArr.length-1) {
-//									oppIndex -= lead.exportArr.length;
-//								}
-//								
-//								changeColor(nextIndexX,nextIndexY,oppIndex);
-//								trace(nextIndexX + "      " + nextIndexY + "      " + i);
-//							}
-//						}
 					}
 				}
 			
@@ -514,6 +593,16 @@ package cn.sftech.www.view
 					case 2:{nextIndexX ++;};break;
 					case 3:{nextIndexY ++;};break;
 				}
+				
+//				if(nextIndexX > COL_COUNT) {
+//					
+//				} else {
+//					if(nextIndexY < 0 || nextIndexY >= ROW_COUNT) {
+//						
+//					} else {
+//						
+//					}
+//				}
 				
 				if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
 					0 <= nextIndexY && nextIndexY < ROW_COUNT) {
