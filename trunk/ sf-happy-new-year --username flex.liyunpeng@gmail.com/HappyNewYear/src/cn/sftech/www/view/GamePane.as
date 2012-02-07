@@ -42,6 +42,10 @@ package cn.sftech.www.view
 		 * 记录已检测通过的导火线索引
 		 */		
 		private var fireLeadArr : Vector.<uint> = new Vector.<uint>;
+		/**
+		 * 要删除的导火线
+		 */		
+		private var toDelArr : Vector.<Lead> = new Vector.<Lead>;
 		
 		/**
 		 * 当前颜色标记
@@ -516,6 +520,9 @@ package cn.sftech.www.view
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					leadArr[arrIndexY][arrIndexX].currentColorFlag = Lead.GREEN_COLOR;
+					if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
+						toDelArr.push(leadArr[arrIndexY][arrIndexX]);
+					}
 					
 //					kindelLead(lead);
 				} else {
