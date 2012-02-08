@@ -43,6 +43,10 @@ package cn.sftech.www.view
 		 */		
 		private var fireLeadArr : Vector.<uint> = new Vector.<uint>;
 		/**
+		 * 要燃烧的出口导火索索引
+		 */		
+		private var fireExportLeadArr : Vector.<uint> = new Vector.<uint>;
+		/**
 		 * 要删除的导火线
 		 */		
 		private var toDelArr : Vector.<Lead> = new Vector.<Lead>;
@@ -140,7 +144,6 @@ package cn.sftech.www.view
 //			createLead();
 			createLeadMap();
 			
-			checkGame();
 		}
 		
 		/**
@@ -192,50 +195,50 @@ package cn.sftech.www.view
 		 * 初始化创建导火线
 		 * 
 		 */		
-		private function createLead() : void
-		{
-			if(mapData) {
-				for(var a : int = 0;a < ROW_COUNT;a++) {
-					for(var b : int = 1;b < COL_COUNT-1;b++) {
-						var leadt : Lead = new Lead();
-						leadt.type = mapData[a][b-1];
-						leadt.x = BASE_X + Lead.LEAD_SIZE*b;
-						leadt.y = BASE_Y + Lead.LEAD_SIZE*a;
-						leadPane.addChild(leadt);
-						leadArr[a][b] = leadt;
-					}
-				}
-				return;
-			}
-			
-			
-			var temp : String;
-			for(var i : int = 0;i < ROW_COUNT;i++) {
-				temp = "["
-				for(var j : int = 1;j < COL_COUNT-1;j++) {
-					var lead : Lead = new Lead();
-					var tmpFlag : uint = MathUtil.random(1,17);
-					if(tmpFlag>9) {
-						lead.type = 1;
-					} else if(tmpFlag > 2) {
-						lead.type = 2;
-					} else if(tmpFlag > 1) {
-						lead.type = 3;
-					} else {
-						lead.type = 4;
-					}
-//					lead.type = MathUtil.random(1,5);
-					lead.x = BASE_X + Lead.LEAD_SIZE*j;
-					lead.y = BASE_Y + Lead.LEAD_SIZE*i;
-					leadPane.addChild(lead);
-					leadArr[i][j] = lead;
-					temp += lead.type + ",";
-				}
-				temp += "]";
-				trace(temp);
-				temp = "";
-			}
-		}
+//		private function createLead() : void
+//		{
+//			if(mapData) {
+//				for(var a : int = 0;a < ROW_COUNT;a++) {
+//					for(var b : int = 1;b < COL_COUNT-1;b++) {
+//						var leadt : Lead = new Lead();
+//						leadt.type = mapData[a][b-1];
+//						leadt.x = BASE_X + Lead.LEAD_SIZE*b;
+//						leadt.y = BASE_Y + Lead.LEAD_SIZE*a;
+//						leadPane.addChild(leadt);
+//						leadArr[a][b] = leadt;
+//					}
+//				}
+//				return;
+//			}
+//			
+//			
+//			var temp : String;
+//			for(var i : int = 0;i < ROW_COUNT;i++) {
+//				temp = "["
+//				for(var j : int = 1;j < COL_COUNT-1;j++) {
+//					var lead : Lead = new Lead();
+//					var tmpFlag : uint = MathUtil.random(1,17);
+//					if(tmpFlag>9) {
+//						lead.type = 1;
+//					} else if(tmpFlag > 2) {
+//						lead.type = 2;
+//					} else if(tmpFlag > 1) {
+//						lead.type = 3;
+//					} else {
+//						lead.type = 4;
+//					}
+////					lead.type = MathUtil.random(1,5);
+//					lead.x = BASE_X + Lead.LEAD_SIZE*j;
+//					lead.y = BASE_Y + Lead.LEAD_SIZE*i;
+//					leadPane.addChild(lead);
+//					leadArr[i][j] = lead;
+//					temp += lead.type + ",";
+//				}
+//				temp += "]";
+//				trace(temp);
+//				temp = "";
+//			}
+//		}
 		
 		private function createLeadMap() : void
 		{
@@ -253,6 +256,10 @@ package cn.sftech.www.view
 //				}
 			}
 			
+			mapData = null;
+			isFiring = false;
+			
+			checkGame();
 		}
 		
 		private function createLeadEffect(lead : Lead,indexX : uint,indexY: uint) : void
@@ -279,10 +286,13 @@ package cn.sftech.www.view
 						trace(indexY + " " + indexX);
 					}
 					lead.type = mapData[a][indexX-1];
+					lead.indexX = indexX;
+					lead.indexY = a;
 					lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
 					lead.y = CRE_Y;
 					leadArr[a][indexX] = lead;
 //					leadPane.addChild(lead);
+					
 				}
 			} else { //如果没有现有地图数据
 				//向下移动现有的导火线
@@ -290,9 +300,12 @@ package cn.sftech.www.view
 					if(leadArr[i][indexX] == null) {
 						blankBlockCount ++;
 					} else { 
-						leadArr[i+blankBlockCount][indexX] = leadArr[i][indexX];
+						var moveLead : Lead = leadArr[i][indexX];
+						moveLead.indexX = indexX;
+						moveLead.indexY = i+blankBlockCount;
+						leadArr[i+blankBlockCount][indexX] = moveLead;
 						leadArr[i][indexX] = null;
-						createLeadEffect(leadArr[i][indexX],indexX,i);
+						createLeadEffect(leadArr[i+blankBlockCount][indexX],indexX,i+blankBlockCount);
 					}
 				}
 				
@@ -309,6 +322,8 @@ package cn.sftech.www.view
 					} else {
 						creLead.type = 4;
 					}
+					creLead.indexX = indexX;
+					creLead.indexY = k;
 					creLead.x = BASE_X + Lead.LEAD_SIZE*indexX;
 					creLead.y = CRE_Y;
 					
@@ -337,7 +352,7 @@ package cn.sftech.www.view
 		private function clickLeadHandle(event : MouseEvent) : void
 		{
 			if(isFiring) return;
-			if(this.mouseX < BASE_X || this.mouseX > BASE_X + Lead.LEAD_SIZE*COL_COUNT ||
+			if(this.mouseX < BASE_X+Lead.LEAD_SIZE || this.mouseX > BASE_X + (Lead.LEAD_SIZE*COL_COUNT-2) ||
 				this.mouseY < BASE_Y || this.mouseY > BASE_Y + Lead.LEAD_SIZE*ROW_COUNT) {
 				return;
 			}
@@ -366,10 +381,10 @@ package cn.sftech.www.view
 				indexY = ROW_COUNT;
 			}
 			
-			if(indexX < 0) {
-				indexX = 0;
-			} else if(indexX > COL_COUNT) {
-				indexX = COL_COUNT;
+			if(indexX < 1) {
+				indexX = 1;
+			} else if(indexX > COL_COUNT-2) {
+				indexX = COL_COUNT-2;
 			}
 			return leadArr[indexY][indexX];
 		}
@@ -400,6 +415,7 @@ package cn.sftech.www.view
 		 */		
 		private function checkEntrance() : void
 		{
+			fireLeadArr = new Vector.<uint>;
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				if(leadArr[i][0].exportArr[0]) {
 					currentColorFlag = Lead.YELLOW_COLOR;
@@ -415,6 +431,7 @@ package cn.sftech.www.view
 		 */		
 		private function checkExport() : void
 		{
+			fireExportLeadArr = new Vector.<uint>;
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				if(leadArr[i][COL_COUNT-1].exportArr[2]) {
 					currentColorFlag = Lead.RED_COLOR;
@@ -441,13 +458,14 @@ package cn.sftech.www.view
 		{
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
-			for(var i : int = 0;i < fireLeadArr.length;i++) {
+			while(fireLeadArr.length>0) {
 				var fire : Fire = new Fire();
-				fire.x = leadArr[fireLeadArr[i]][0].x;
-				fire.y = leadArr[fireLeadArr[i]][0].y;
+				fire.x = leadArr[fireLeadArr[0]][0].x;
+				fire.y = leadArr[fireLeadArr[0]][0].y;
 				fire.dirIndex = 0;
 				firePane.addChild(fire);
-				changeColor(0,fireLeadArr[i],0,fire);
+				changeColor(0,fireLeadArr[0],0,fire);
+				fireLeadArr.splice(0,1);
 			}
 		}
 		
@@ -505,6 +523,8 @@ package cn.sftech.www.view
 						leadColorArr[arrIndexY][arrIndexX] = Lead.ORANGE_COLOR;
 						if(arrIndexX == 0) {
 							fireLeadArr.push(arrIndexY);
+						} else if(arrIndexX == COL_COUNT-1) {
+							fireExportLeadArr.push(arrIndexY);
 						}
 						
 					} else {
@@ -579,13 +599,14 @@ package cn.sftech.www.view
 			} else { //如果没有和上一个导火线对上
 				if(fire) {
 					firePane.removeChild(fire);
+					fire = null;
 				}
 			}
 		}
 		
 		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire = null) : void
 		{
-			if(arrIndexX == 0 && arrIndexY == 3) {
+			if(arrIndexX == 6 && arrIndexY == 0) {
 				trace("a");
 			}
 			
@@ -601,13 +622,40 @@ package cn.sftech.www.view
 					case 3:{nextIndexY ++;};break;
 				}
 				
-//				if(nextIndexX > COL_COUNT) {
-//					
+//				if(nextIndexX >= COL_COUNT) {
+//					if(fire) {
+//						firePane.removeChild(fire);
+//						fire = null;
+//						fireExportLeadArr.splice(fireExportLeadArr.indexOf(arrIndexY),1);
+//						
+//						if(fireExportLeadArr.length<=0) {
+//							while(toDelArr.length>0) {
+//								var toDelLead : Lead = toDelArr[0];
+//								leadPane.removeChild(toDelLead);
+//								leadArr[toDelLead.indexY][toDelLead.indexX] = null;
+//								toDelArr.splice(0,1);
+//							}
+//							
+//							if(toDelArr.length == 0) {
+//								test();
+//								createLeadMap();
+//							}
+//						}
+//					}
 //				} else {
+//					if(nextIndexX < 0) return;
+//					
 //					if(nextIndexY < 0 || nextIndexY >= ROW_COUNT) {
-//						
+////						firePane.removeChild(fire);
+////						fire = null;
 //					} else {
+//						var oppIndex : int = index+2;
+//						if(oppIndex > lead.exportArr.length-1) {
+//							oppIndex -= lead.exportArr.length;
+//						}
 //						
+//						changeColor(nextIndexX,nextIndexY,oppIndex,fire);
+//						trace(nextIndexX + "      " + nextIndexY + "      " + index);
 //					}
 //				}
 				
@@ -620,6 +668,30 @@ package cn.sftech.www.view
 					
 					changeColor(nextIndexX,nextIndexY,oppIndex,fire);
 					trace(nextIndexX + "      " + nextIndexY + "      " + index);
+				} else {
+					if(nextIndexX < 0) return;
+					if(fire) {
+						if(nextIndexX >= COL_COUNT) {
+							fireExportLeadArr.splice(fireExportLeadArr.indexOf(arrIndexY),1);
+							
+							if(fireExportLeadArr.length<=0) {
+								while(toDelArr.length>0) {
+									var toDelLead : Lead = toDelArr[0];
+									leadPane.removeChild(toDelLead);
+									leadArr[toDelLead.indexY][toDelLead.indexX] = null;
+									toDelArr.splice(0,1);
+								}
+								
+								if(toDelArr.length == 0) {
+									test();
+									createLeadMap();
+								}
+							}
+						}
+						
+						firePane.removeChild(fire);
+						fire = null;
+					}
 				}
 			} else {
 			}
@@ -635,5 +707,21 @@ package cn.sftech.www.view
 		
 		*/
 		
+		
+		private function test() : void
+		{
+			for(var i : int = 0;i < ROW_COUNT;i ++) {
+				var temp : String = "[";
+				for(var j : int = 0;j < COL_COUNT;j ++) {
+					if(leadArr[i][j]) {
+						temp += leadArr[i][j].type + ",";
+					} else {
+						temp += "^,"
+					}
+				}
+				temp += "]";
+				trace(temp);
+			}
+		}
 	}
 }

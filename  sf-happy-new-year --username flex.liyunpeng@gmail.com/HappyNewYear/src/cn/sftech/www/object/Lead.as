@@ -12,6 +12,9 @@ package cn.sftech.www.object
 	{
 //		public var firePane : SFContainer;
 		
+		public var indexX : uint;
+		public var indexY : uint;
+		
 		private var body : MovieClip;
 		
 		public static const LEAD_SIZE : uint = 50;
