@@ -41,6 +41,8 @@ package cn.sftech.www.object
 		 */
 		private var _currentColorFlag : uint;
 		
+		private var _angle : uint;
+		
 		private var _type : uint = 0;
 		
 		public function Lead()
@@ -87,17 +89,33 @@ package cn.sftech.www.object
 			return _type;
 		}
 		
-		public function rotationLead(effect : SFEffectBase) : void
+		public function set angle(value : uint) : void
 		{
-			var tempFlag : Boolean = exportArr[exportArr.length-1];
-			for(var i : int = exportArr.length-1;i >= 0;i --) {
-				if(i < 1) {
-					exportArr[i] = tempFlag;
-				} else {
-					exportArr[i] = exportArr[i-1];
-				}
+			if(value > 4) {
+				_angle = 1;
+			} else {
+				_angle = value;
 			}
 			
+			for(var a : int = 1;a < _angle;a++) {
+				var tempFlag : Boolean = exportArr[exportArr.length-1];
+				for(var i : int = exportArr.length-1;i >= 0;i --) {
+					if(i < 1) {
+						exportArr[i] = tempFlag;
+					} else {
+						exportArr[i] = exportArr[i-1];
+					}
+				}
+			}
+		}
+		
+		public function get angle() : uint
+		{
+			return _angle;
+		}
+		
+		public function rotationLead(effect : SFEffectBase) : void
+		{
 			effect.stop(true);
 			effect.target = this.body;
 			effect.vars.prop("rotation",this.body.rotation+90);

@@ -3,6 +3,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.KindleEndEvent;
+	import cn.sftech.www.object.Cracker;
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
 	import cn.sftech.www.util.MathUtil;
@@ -34,6 +35,8 @@ package cn.sftech.www.view
 		//------ Config --------------------------------
 		
 		private var leadArr : Vector.<Vector.<Lead>>;
+		
+		private var crackerArr : Vector.<Cracker>;
 		/**
 		 * 记录导火线颜色标记
 		 */		
@@ -79,6 +82,16 @@ package cn.sftech.www.view
 //				[2,1,2,1,2,3],
 //				[1,3,1,1,2,1]
 			
+//				[3,1,1,1,1,1],
+//				[3,1,1,1,2,1],
+//				[2,2,2,4,1,2],
+//				[1,1,1,1,1,2],
+//				[2,2,2,1,3,2],
+//				[4,4,1,2,1,2],
+//				[1,1,2,1,2,2],
+//				[2,1,2,1,2,3],
+//				[1,3,1,1,2,1]
+				
 				[3,1,1,1,1,1],
 				[3,1,1,1,2,1],
 				[2,2,2,4,1,2],
@@ -88,6 +101,18 @@ package cn.sftech.www.view
 				[1,1,2,1,2,2],
 				[2,1,2,1,2,3],
 				[1,3,1,1,2,1]
+			];
+		
+		private var leadAngleArr : Array = [
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1],
+				[1,1,1,1,1,1]
 			];
 		
 		public function GamePane()
@@ -116,6 +141,8 @@ package cn.sftech.www.view
 				leadArr[i] = new Vector.<Lead>(COL_COUNT);
 			}
 			
+			crackerArr = new Vector.<Cracker>(ROW_COUNT);
+			
 			rotationEffect.duration = 0.3;
 		}
 		
@@ -141,6 +168,7 @@ package cn.sftech.www.view
 			this.addChild(firePane);
 			createEntrance();
 			createExport();
+			createCracker();
 //			createLead();
 			createLeadMap();
 			
@@ -191,54 +219,17 @@ package cn.sftech.www.view
 			}
 		}
 		
-		/**
-		 * 初始化创建导火线
-		 * 
-		 */		
-//		private function createLead() : void
-//		{
-//			if(mapData) {
-//				for(var a : int = 0;a < ROW_COUNT;a++) {
-//					for(var b : int = 1;b < COL_COUNT-1;b++) {
-//						var leadt : Lead = new Lead();
-//						leadt.type = mapData[a][b-1];
-//						leadt.x = BASE_X + Lead.LEAD_SIZE*b;
-//						leadt.y = BASE_Y + Lead.LEAD_SIZE*a;
-//						leadPane.addChild(leadt);
-//						leadArr[a][b] = leadt;
-//					}
-//				}
-//				return;
-//			}
-//			
-//			
-//			var temp : String;
-//			for(var i : int = 0;i < ROW_COUNT;i++) {
-//				temp = "["
-//				for(var j : int = 1;j < COL_COUNT-1;j++) {
-//					var lead : Lead = new Lead();
-//					var tmpFlag : uint = MathUtil.random(1,17);
-//					if(tmpFlag>9) {
-//						lead.type = 1;
-//					} else if(tmpFlag > 2) {
-//						lead.type = 2;
-//					} else if(tmpFlag > 1) {
-//						lead.type = 3;
-//					} else {
-//						lead.type = 4;
-//					}
-////					lead.type = MathUtil.random(1,5);
-//					lead.x = BASE_X + Lead.LEAD_SIZE*j;
-//					lead.y = BASE_Y + Lead.LEAD_SIZE*i;
-//					leadPane.addChild(lead);
-//					leadArr[i][j] = lead;
-//					temp += lead.type + ",";
-//				}
-//				temp += "]";
-//				trace(temp);
-//				temp = "";
-//			}
-//		}
+		private function createCracker() : void
+		{
+			for(var i : int = 0;i < ROW_COUNT;i++) {
+				var cracker : Cracker = new Cracker();
+				cracker.type = 1;
+				cracker.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT);
+				cracker.y = BASE_Y + Lead.LEAD_SIZE*(i + 0.5);
+				crackerArr[i] = cracker;
+				firePane.addChild(cracker);
+			}
+		}
 		
 		private function createLeadMap() : void
 		{
@@ -286,6 +277,7 @@ package cn.sftech.www.view
 						trace(indexY + " " + indexX);
 					}
 					lead.type = mapData[a][indexX-1];
+					lead.angle = leadAngleArr[a][indexX-1];
 					lead.indexX = indexX;
 					lead.indexY = a;
 					lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
@@ -361,8 +353,11 @@ package cn.sftech.www.view
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
 			lead.rotationLead(rotationEffect);
+			leadAngleArr[lead.indexY][lead.indexX] = lead.angle;
 			
 			checkGame();
+			
+			test();
 		}
 		/**
 		 * 根据鼠标点击位置获取导火线
@@ -622,43 +617,6 @@ package cn.sftech.www.view
 					case 3:{nextIndexY ++;};break;
 				}
 				
-//				if(nextIndexX >= COL_COUNT) {
-//					if(fire) {
-//						firePane.removeChild(fire);
-//						fire = null;
-//						fireExportLeadArr.splice(fireExportLeadArr.indexOf(arrIndexY),1);
-//						
-//						if(fireExportLeadArr.length<=0) {
-//							while(toDelArr.length>0) {
-//								var toDelLead : Lead = toDelArr[0];
-//								leadPane.removeChild(toDelLead);
-//								leadArr[toDelLead.indexY][toDelLead.indexX] = null;
-//								toDelArr.splice(0,1);
-//							}
-//							
-//							if(toDelArr.length == 0) {
-//								test();
-//								createLeadMap();
-//							}
-//						}
-//					}
-//				} else {
-//					if(nextIndexX < 0) return;
-//					
-//					if(nextIndexY < 0 || nextIndexY >= ROW_COUNT) {
-////						firePane.removeChild(fire);
-////						fire = null;
-//					} else {
-//						var oppIndex : int = index+2;
-//						if(oppIndex > lead.exportArr.length-1) {
-//							oppIndex -= lead.exportArr.length;
-//						}
-//						
-//						changeColor(nextIndexX,nextIndexY,oppIndex,fire);
-//						trace(nextIndexX + "      " + nextIndexY + "      " + index);
-//					}
-//				}
-				
 				if(0 <= nextIndexX && nextIndexX < COL_COUNT &&
 					0 <= nextIndexY && nextIndexY < ROW_COUNT) {
 					var oppIndex : int = index+2;
@@ -671,15 +629,18 @@ package cn.sftech.www.view
 				} else {
 					if(nextIndexX < 0) return;
 					if(fire) {
-						if(nextIndexX >= COL_COUNT) {
+						if(nextIndexX >= COL_COUNT) {  //燃烧到导火线尾部
+							crackerArr[arrIndexY].kindleCracker();
+							
 							fireExportLeadArr.splice(fireExportLeadArr.indexOf(arrIndexY),1);
 							
 							if(fireExportLeadArr.length<=0) {
-								while(toDelArr.length>0) {
+								while(toDelArr.length>0) { //把以点燃的导火线删除
 									var toDelLead : Lead = toDelArr[0];
 									leadPane.removeChild(toDelLead);
 									leadArr[toDelLead.indexY][toDelLead.indexX] = null;
 									toDelArr.splice(0,1);
+									
 								}
 								
 								if(toDelArr.length == 0) {

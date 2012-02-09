@@ -13,7 +13,7 @@ package com.qq.protocol
     {
         ///////////////////////////////////////////////////////////////////////////////////////////
         //  积分接口编解码
-        public static function ScoreEncode(op:int, sc:uint, tp:uint):ByteArray
+        public static function ScoreEncode(op:int, sc:uint, tp:uint,force:int=0):ByteArray
         {
             var szEncode:ByteArray = new ByteArray();
 
@@ -21,6 +21,7 @@ package com.qq.protocol
             DataHelp.writeUInt32(szEncode, op, 0);
             DataHelp.writeUInt32(szEncode, sc, 1);
             DataHelp.writeUInt32(szEncode, tp, 2);
+			DataHelp.writeInt32(szEncode, force, 3);
             DataHead.writeTo(szEncode, 0, DataHead.EM_STRUCTEND);
 
             return EncodeRequest("s", szEncode);
@@ -153,6 +154,37 @@ package com.qq.protocol
             return {code: MttService.EPDECODE};          
         }
 
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        //  查询用户昵称
+        public static function UserInfoEncode():ByteArray
+        {
+            var szEncode:ByteArray = new ByteArray();
+            
+            DataHead.writeTo(szEncode, 0, DataHead.EM_STRUCTBEGIN);
+            DataHelp.writeString(szEncode, "", 0);
+            DataHead.writeTo(szEncode, 0, DataHead.EM_STRUCTEND);
+	
+            return EncodeRequest("gui", szEncode);
+        }
+
+        public static function UserInfoDecode(s:ByteArray):Object
+        {
+            try
+            {
+                var ret:Object = DecodeRequest(s);
+                if (ret.fcode == 0)
+                {
+                    var rsp:GetUserInfoRsp = GetUserInfoRsp.readStruct(ret.res, 0, true) as GetUserInfoRsp; 
+
+                    return {code:0, nickName:rsp.nickName}; 
+                }
+
+                return {code:ret.fcode};
+            }
+            catch (e:Error){ }
+
+            return {code: MttService.EPDECODE};          
+        }		
         ///////////////////////////////////////////////////////////////////////////////////////////
         //  商城道具列表
         public static function MallStoreEncode():ByteArray
@@ -294,6 +326,37 @@ package com.qq.protocol
             catch (e:Error){ }
 
             return {code: MttService.EPDECODE};
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        //  使用道具的打包
+        public static function StatReportEncode(info:String):ByteArray
+        {
+            var szEncode:ByteArray = new ByteArray();
+            
+            DataHead.writeTo(szEncode, 0, DataHead.EM_STRUCTBEGIN);
+            DataHelp.writeString(szEncode, info, 0);
+            DataHead.writeTo(szEncode, 0, DataHead.EM_STRUCTEND);
+            
+            return EncodeRequest("sgsd", szEncode); 
+        }
+
+        public static function StatReportDecode(s:ByteArray):Object
+        {
+            try
+            {
+                var ret:Object = DecodeRequest(s);
+                if (ret.fcode == 0)
+                {
+                    var rsp:StatReportRsp = StatReportRsp.readStruct(ret.res, 0, true) as StatReportRsp; 
+                    return {code:rsp.code};
+                }
+                
+                return {code:ret.fcode};
+            }
+            catch (e:Error) { }
+            
+            return {code:MttService.EPDECODE};
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////////
@@ -460,6 +523,26 @@ class MallCoinsRsp
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+//  读取查询用户昵称返回数据
+class GetUserInfoRsp
+{
+	public var nickName:String;		//用户昵称
+
+    public static function readFrom(ist:ByteArray):GetUserInfoRsp
+    {
+        var value:GetUserInfoRsp  = new GetUserInfoRsp();
+        value.nickName   = DataHelp.readString(ist, 0, true);
+
+        return value;
+    }
+
+    public static function readStruct(ist:ByteArray, tag:int, require:Boolean):GetUserInfoRsp
+    {
+        return DataHelp.readStruct(ist, tag, require, readFrom) as GetUserInfoRsp;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //  读取商店道具列表返回数据
 class MallStoreRsp
 {
@@ -542,4 +625,23 @@ class MallListRsp
     {
         return DataHelp.readStruct(ist, tag, require, ListItemReadFrom) as ListItem;
     }
-};
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  统计接口
+class StatReportRsp
+{
+    public var code:uint = 0;
+
+    public static function readFrom(ist:ByteArray):StatReportRsp
+    {
+        var value:StatReportRsp  = new StatReportRsp();
+        value.code   = DataHelp.readInt32(ist, 0, true);
+        return value;
+    }
+
+    public static function readStruct(ist:ByteArray, tag:int, require:Boolean):StatReportRsp
+    {
+        return DataHelp.readStruct(ist, tag, require, readFrom) as StatReportRsp;
+    }
+}

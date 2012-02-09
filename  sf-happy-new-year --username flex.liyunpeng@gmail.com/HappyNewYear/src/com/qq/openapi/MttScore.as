@@ -64,7 +64,7 @@ package com.qq.openapi
          * 
          *  @see com.qq.openapi.ScoreInfo
          */
-        public static function submit(score:uint, callback:Function):void
+        public static function submit(score:uint, callback:Function,force:int=0):void
         {
             if (score >= 2100000000)
             {
@@ -72,7 +72,7 @@ package com.qq.openapi
                 return ;
             }
 
-            MttService.sapi(MttService.APPID_SCORE, ProtocolHelper.ScoreEncode(1, score, 0), onLoadFinish);
+            MttService.sapi(MttService.APPID_SCORE, ProtocolHelper.ScoreEncode(1, score, 0,force), onLoadFinish);
 
             function onLoadFinish(scode:int, data:ByteArray):void
             {
@@ -102,12 +102,12 @@ package com.qq.openapi
          *  @param callback 用户点击了退出游戏的Button
          *
          */
-        public static function show(score:uint, ps:Object = null):void
+        public static function show(score:uint):void
         {
             //如果资源已经加载成功
             if (MttService.loaded)
             {
-                MttService.lib.scoreShowUpload(score, ps);
+                MttService.lib.scoreShowUpload(score);
                 return ;
             }
 
