@@ -1,10 +1,10 @@
-package com.qq.openapi
+﻿package com.qq.openapi
 {
     import com.qq.protocol.DataHelp;
     import com.qq.protocol.ProtocolHelper;
     import com.qq.utils.HttpRequest;
     import com.qq.utils.MEvent;
-    
+
     import flash.display.DisplayObject;
     import flash.display.Loader;
     import flash.display.LoaderInfo;
@@ -26,7 +26,7 @@ package com.qq.openapi
      */
     public class MttService
     {
-        /**
+		/**
          *  后台服务发现当前用户没有登录或者回话已经过期。   
          */     
         public static const ELOGOUT     :int = -60000;
@@ -77,9 +77,14 @@ package com.qq.openapi
         public static const ETLOGOUT    :String = "LOOUT";
 
         /**
-         *  用户选择再玩一次游戏。
+         *  用户选择【再玩一次】按钮，将发布该事件。
          */     
         public static const ETAGAIN     :String = "AGAIN";
+
+        /**
+         *  用户选择【返回菜单】按钮，将发布该事件。
+         */     
+        public static const ETRETURN    :String = "RETURN_MENU";
 
         /**
          *  上传积分的APPID。
@@ -96,8 +101,20 @@ package com.qq.openapi
         /**
          *  商城的APPID。
          *  @private
-         */        
+         */
         public static const APPID_MALL  :String = "8";
+
+        /**
+         *  用于统计的APPID
+         *  @private
+         */
+        public static const APPID_STAT  :String = "9";
+
+		/**
+		 *	系统的回调函数
+		 *	@private
+		 */
+		private static var callbackFunc:Function = null;
 
         /**
          *  用于判断当前运行环境是否是QQ手机浏览器。 
@@ -149,7 +166,7 @@ package com.qq.openapi
          */
         public static function get urlLogin():String    
         { 
-            return mUrlLogin + "&go_url=" + encodeURIComponent((isLocal()?URL_LOGINDEV:URL_LOGINREAL) + mAppId);
+            return mUrlLogin;
         }
 
         /**
@@ -174,7 +191,10 @@ package com.qq.openapi
          */
         public static function get lib():MovieClip
         {
-            mParent.setChildIndex(mLib, mParent.numChildren - 1);
+            if (mParent.numChildren > 0) 
+			{
+				mParent.setChildIndex(mLib, mParent.numChildren - 1);
+			}
 
             return mLib;
         }
@@ -230,7 +250,10 @@ package com.qq.openapi
          */        
         public static function isLogin():Boolean
         {
-            return mToken != null && mToken.length > 5;
+			if (mToken != null && mToken.length > 5)
+				return true;
+			else 
+				return false;
         }
 
         /**
@@ -251,6 +274,7 @@ package com.qq.openapi
                 mToken      = token;
                 mAppId      = appId;
                 mGameId     = gameId;
+                mUrlLogin   = "http://my.imtt.qq.com/weblogin/s?aid=browserlogin";
             }
             mParent = parent;
 
@@ -292,7 +316,15 @@ package com.qq.openapi
             {
                 mVersion = root.loaderInfo.parameters["version"];
             }
-
+			
+            if (root.loaderInfo.parameters["loginurl"] != null && String(root.loaderInfo.parameters["loginurl"]).length > 5)
+            {
+                mUrlLogin = unescape(root.loaderInfo.parameters["loginurl"]);
+            }else 
+			{
+				mUrlLogin = "http://my.imtt.qq.com/weblogin/s?aid=browserlogin";
+			}
+			
             mLoader = new Loader();
             mLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, onLoader);
             mLoader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, onLoaderError);
@@ -424,62 +456,67 @@ package com.qq.openapi
          */
         public static function send(url:String, appid:String, req:ByteArray, onFinish:Function):void
         {
-            var _http:HttpRequestItem = getIdleNetSender();
-            _http.http.url = url;
-            _http.http.timeout = mTimeout * 1000;
-            _http.http.addEventListener(HttpRequest.COMPLETE,   onFinishLoad);
-            _http.http.addEventListener(HttpRequest.ERROR,      onFinishLoadError);
-            _http.http.addEventListener(HttpRequest.TIMEOUT,    onFinishLoadTimeout);
-            _http.http.doRequest((qqbrowser && mttprotocol)?req:PluginEncode(appid, req));
+			callbackFunc = onFinish;
 
-            function onFinishLoad(e:MEvent):void
-            {
-                removeListeners(e);
+			var http:HttpRequest = new HttpRequest();;
+            http.url = url;
+            http.timeout = mTimeout * 1000;
 
-                var code:int        = 0;
-                var data:ByteArray  = e.data as ByteArray;
-                try
-                {
-                    if (qqbrowser == false || mttprotocol == false)
-                    {
-                        var res:Object = PluginDecode(data);
-
-                        code = res.code;
-                        data = res.data;
-                    }
-                    
-                    if (code == ELOGOUT)
-                    {
-                        MttService.dispatchEvent(new Event(MttService.ETLOGOUT));
-                        return ;
-                    }
-                }
-                catch(e:Error) { code = EPDECODE; }
-                onFinish && onFinish.call(null, code, data);
-            }
-
-            function onFinishLoadError(e:MEvent):void
-            {
-                removeListeners(e);
-
-                onFinish && onFinish.call(null, EIOERROR, null);
-            }
-
-            function onFinishLoadTimeout(e:MEvent):void
-            {
-                removeListeners(e);
-
-                onFinish && onFinish.call(null, EIOTIMEOUT, null);
-            }
-
-            function removeListeners(e:MEvent):void
-            {
-                _http.http.removeEventListener(HttpRequest.COMPLETE,    onFinishLoad);
-                _http.http.removeEventListener(HttpRequest.ERROR,       onFinishLoadError);
-                _http.http.removeEventListener(HttpRequest.TIMEOUT,     onFinishLoadTimeout);
-                _http.idle = true;
-            }
+            http.addEventListener(HttpRequest.COMPLETE,   onFinishLoad);
+            http.addEventListener(HttpRequest.ERROR,      onFinishLoadError);
+            http.addEventListener(HttpRequest.TIMEOUT,    onFinishLoadTimeout);
+            http.doRequest((qqbrowser && mttprotocol)?req:PluginEncode(appid, req));
         }
+
+		private static function onFinishLoad(e:MEvent):void
+        {
+			removeListeners(e);
+
+			var code:int        = 0;
+			var data:ByteArray  = e.data as ByteArray;
+			try
+			{
+				if (qqbrowser == false || mttprotocol == false)
+				{
+					var res:Object = PluginDecode(data);
+
+					code = res.code;
+					data = res.data;
+				}
+                    
+				if (code == ELOGOUT)
+				{
+					MttService.dispatchEvent(new Event(MttService.ETLOGOUT));
+					return ;
+				}
+			}
+			catch(e:Error) { code = EPDECODE; }
+                
+			callbackFunc && callbackFunc.call(null, code, data);
+		}
+
+		private static function onFinishLoadError(e:MEvent):void
+		{
+			removeListeners(e);
+
+			callbackFunc && callbackFunc.call(null, EIOERROR, null);
+		}
+
+		private static function onFinishLoadTimeout(e:MEvent):void
+		{
+			removeListeners(e);
+
+			callbackFunc && callbackFunc.call(null, EIOTIMEOUT, null);
+		}
+
+		private static function removeListeners(e:MEvent):void
+		{
+			var http:HttpRequest = e.currentTarget as HttpRequest;
+
+			http.removeEventListener(HttpRequest.COMPLETE,    onFinishLoad);
+           	http.removeEventListener(HttpRequest.ERROR,       onFinishLoadError);
+          	http.removeEventListener(HttpRequest.TIMEOUT,     onFinishLoadTimeout);
+		}
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         //  全局事件注册函数
@@ -500,22 +537,7 @@ package com.qq.openapi
             return mDispatch.dispatchEvent(event);
         }
 
-        //获取一个空闲的链接
-        private static function getIdleNetSender():HttpRequestItem
-        {
-            for (var i:uint = 0; i < mHttp.length; i++)
-            {
-                if (mHttp[i].idle == true)
-                {
-                    mHttp[i].idle = false;
-                    return mHttp[i];
-                }
-            }
 
-            var http:HttpRequestItem = new HttpRequestItem(false);
-            mHttp.push(http);
-            return http;
-        }
 
         //模拟插件封包逻辑
         private static function PluginEncode(appID:String, postData:ByteArray):ByteArray
@@ -580,22 +602,26 @@ package com.qq.openapi
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         //  私有常量数据
-        private static const NUM_VERSION    : uint   = 310008;
-        private static const STR_VERSION    : String = "AS3V1.0.8";
+        private static const NUM_VERSION    : uint   = 310009;
+        private static const STR_VERSION    : String = "AS3V1.0.9";
         private static const URL_URLJUMP    : String = "imtts://appid=5";
         private static const URL_LOGINDEV   : String = "http://fgdev.imtt.qq.com/flash?action=singleGame&version=v1.0&gameId=";
         private static const URL_LOGINREAL  : String = "http://fg.imtt.qq.com/flash?action=singleGame&version=v1.0&gameId=";
-        private static const URL_MLHTTP     : String = "180/MLib/assets/mttlib4.swf";
-        private static const URL_MLIMTT     : String = "imtt://180/MLib/assets/mttlib4.swf";
+        private static const URL_MLHTTP     : String = "180/MLib/assets/mttlib5.swf";
+        private static const URL_MLIMTT     : String = "imtt://180/MLib/assets/mttlib5.swf";
 
         private static const GID_FORTEST    : String = "180";
         private static const AID_FORURLJUMP : String = "5";
-		
-        private static const URL_APIHTTP    : String = "http://120.196.211.166:18200/http";
-        private static const URL_REQUEST    : String = "http://120.196.211.166:18200/http";
-        private static const URL_RESOURCE   : String = "http://120.196.211.166/flash/";
-		
-		
+
+        //private static const URL_APIHTTP    : String = "http://221.130.15.242:18000/http";
+        //private static const URL_REQUEST    : String = "http://221.130.15.242:18000/http";
+
+        //private static const URL_APIHTTP    : String = "http://183.62.115.7:18200/http";	
+        private static const URL_APIHTTP    : String = "http://120.196.211.166:18200/http";	
+        private static const URL_REQUEST    : String = "http://183.62.115.7:18200/http";
+
+        private static const URL_RESOURCE   : String = "http://120.196.211.166/flash/";		
+
         ///////////////////////////////////////////////////////////////////////////////////////////
         //  内部变量数据
         private static var mResources       : Object = new Object();
