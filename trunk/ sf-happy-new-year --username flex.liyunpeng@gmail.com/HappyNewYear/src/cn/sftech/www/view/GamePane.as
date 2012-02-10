@@ -104,14 +104,24 @@ package cn.sftech.www.view
 			];
 		
 		private var leadAngleArr : Array = [
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[4,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1],
+//				[1,1,1,1,1,1]
+				
 				[1,1,1,1,1,1],
 				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
+				[3,1,4,1,2,1],
+				[1,2,2,2,2,1],
+				[1,3,2,2,1,1],
+				[1,1,1,3,2,3],
+				[1,1,4,1,2,1],
+				[3,1,2,1,1,1],
 				[1,1,1,1,1,1]
 			];
 		
@@ -277,7 +287,7 @@ package cn.sftech.www.view
 						trace(indexY + " " + indexX);
 					}
 					lead.type = mapData[a][indexX-1];
-					lead.angle = leadAngleArr[a][indexX-1];
+					rotationLead(lead,leadAngleArr[a][indexX-1]);
 					lead.indexX = indexX;
 					lead.indexY = a;
 					lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
@@ -336,6 +346,11 @@ package cn.sftech.www.view
 			_createTimer.start();
 		}
 		
+		private function createCoin(level : uint) : void
+		{
+			
+		}
+		
 		/**
 		 * 点击导火线执行方法
 		 * @param event 鼠标点击事件
@@ -352,13 +367,21 @@ package cn.sftech.www.view
 			fireTimer.stop();
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
-			lead.rotationLead(rotationEffect);
+			rotationLead(lead,2);
 			leadAngleArr[lead.indexY][lead.indexX] = lead.angle;
 			
 			checkGame();
 			
 			test();
 		}
+		
+		private function rotationLead(lead : Lead,count : uint) : void
+		{
+			for(var i : int = 1;i < count;i++) {
+				lead.rotationLead(rotationEffect);
+			}
+		}
+		
 		/**
 		 * 根据鼠标点击位置获取导火线
 		 * @param value_x 鼠标当前X坐标
@@ -464,39 +487,9 @@ package cn.sftech.www.view
 			}
 		}
 		
-//		private function kindelLead(lead : Lead) : void
-//		{
-//			fire.addEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
-//			fire.kindleTo(new Point(this.x,this.y));
-//		}
-		
 		public function kindleFire(fire : Fire,index : uint) : void
 		{
 		}
-		
-//		private function kindleCenter(event : KindleEndEvent) : void
-//		{
-//			//			var fire : Fire = event.target;
-//			event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleCenter);
-//			
-//			for(var i : int = 0;i < exportArr.length;i++) {
-//				//如果出口索引就是入口索引，则跳过；
-//				if(i == entranceIndex) continue;
-//				if(exportArr[i]) {
-//					var toPoint : Point;
-//					switch(i) {
-//						case 0:{toPoint = new Point(this.x-this.width/2,this.y);};break;
-//						case 1:{toPoint = new Point(this.x,this.y-this.height/2);};break;
-//						case 2:{toPoint = new Point(this.x+this.width/2,this.y);};break;
-//						case 3:{toPoint = new Point(this.x,this.y+this.height/2);};break;
-//					}
-//					
-//					var fire : Fire = new Fire();
-//					firePane.addChild(fire);
-//					fire.kindleTo(toPoint);
-//				}
-//			}
-//		}
 		
 		/**
 		 * 深度查找方法
@@ -509,6 +502,7 @@ package cn.sftech.www.view
 				
 			//如果当前检测块的颜色已经是检证过的 则返回
 			
+			
 			if(lead.exportArr[index]) { //如果和上一个导火线对上了
 				if(currentColorFlag == Lead.RED_COLOR) {
 					if(leadColorArr[arrIndexY][arrIndexX] == Lead.RED_COLOR ||
@@ -520,6 +514,14 @@ package cn.sftech.www.view
 							fireLeadArr.push(arrIndexY);
 						} else if(arrIndexX == COL_COUNT-1) {
 							fireExportLeadArr.push(arrIndexY);
+						}
+						
+						if(arrIndexX == 4 && arrIndexY == 2) {
+							trace("a");
+						}
+						if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
+							trace(arrIndexY + " ----" + arrIndexX);
+							toDelArr.push(leadArr[arrIndexY][arrIndexX]);
 						}
 						
 					} else {
@@ -535,9 +537,6 @@ package cn.sftech.www.view
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					leadArr[arrIndexY][arrIndexX].currentColorFlag = Lead.GREEN_COLOR;
-					if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
-						toDelArr.push(leadArr[arrIndexY][arrIndexX]);
-					}
 					
 //					kindelLead(lead);
 				} else {
@@ -571,9 +570,6 @@ package cn.sftech.www.view
 										function kindleEnd(event : KindleEndEvent) : void
 										{
 											event.target.removeEventListener(KindleEndEvent.KINDLE_END_EVENT,kindleEnd);
-											if(arrIndexX == 0 && arrIndexY == 3) {
-												trace("a");
-											}
 											deepFind(arrIndexX,arrIndexY,event.target.dirIndex,event.target as Fire);
 										});
 									firePane.addChild(fire);
@@ -625,7 +621,7 @@ package cn.sftech.www.view
 					}
 					
 					changeColor(nextIndexX,nextIndexY,oppIndex,fire);
-					trace(nextIndexX + "      " + nextIndexY + "      " + index);
+//					trace(nextIndexX + "      " + nextIndexY + "      " + index);
 				} else {
 					if(nextIndexX < 0) return;
 					if(fire) {
@@ -671,11 +667,24 @@ package cn.sftech.www.view
 		
 		private function test() : void
 		{
+//			for(var i : int = 0;i < ROW_COUNT;i ++) {
+//				var temp : String = "[";
+//				for(var j : int = 0;j < COL_COUNT;j ++) {
+//					if(leadArr[i][j]) {
+//						temp += leadArr[i][j].type + ",";
+//					} else {
+//						temp += "^,"
+//					}
+//				}
+//				temp += "]";
+//				trace(temp);
+//			}
+			
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				var temp : String = "[";
 				for(var j : int = 0;j < COL_COUNT;j ++) {
 					if(leadArr[i][j]) {
-						temp += leadArr[i][j].type + ",";
+						temp += leadArr[i][j].angle + ",";
 					} else {
 						temp += "^,"
 					}
