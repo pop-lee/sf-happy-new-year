@@ -15,6 +15,8 @@ package cn.sftech.www.object
 		public var indexX : uint;
 		public var indexY : uint;
 		
+		public var coin : Coin;
+		
 		private var body : MovieClip;
 		
 		public static const LEAD_SIZE : uint = 50;

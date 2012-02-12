@@ -3,6 +3,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.KindleEndEvent;
+	import cn.sftech.www.object.Coin;
 	import cn.sftech.www.object.Cracker;
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
@@ -44,11 +45,11 @@ package cn.sftech.www.view
 		/**
 		 * 记录已检测通过的导火线索引
 		 */		
-		private var fireLeadArr : Vector.<uint> = new Vector.<uint>;
+		private var fireLeadArr : Vector.<uint>;
 		/**
 		 * 要燃烧的出口导火索索引
 		 */		
-		private var fireExportLeadArr : Vector.<uint> = new Vector.<uint>;
+		private var fireExportLeadArr : Vector.<uint>;
 		/**
 		 * 要删除的导火线
 		 */		
@@ -67,6 +68,18 @@ package cn.sftech.www.view
 		 * 准备点火倒计时
 		 */		
 		private var fireTimer : Timer = new Timer(1000,1);
+		/**
+		 * 已经点燃的数量
+		 */		
+		private var firedCount : uint = 0;
+		/**
+		 * 一批以创建的个数计数
+		 */		
+		private var createBatchCount : uint = 0;
+		/**
+		 * 连击次数
+		 */		
+		private var batterCount : uint = 0;
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
 		
@@ -259,8 +272,26 @@ package cn.sftech.www.view
 			
 			mapData = null;
 			isFiring = false;
+			fireLeadArr = new Vector.<uint>();
+			fireExportLeadArr = new Vector.<uint>();
 			
-			checkGame();
+		}
+		
+		private function createCoin(type : uint , count : uint) : void
+		{
+			for(var i : int = 0;i < count;i++) {
+				var coin : Coin = new Coin();
+				coin.type = type;
+				
+				var indexX : uint = MathUtil.random(1,COL_COUNT-1);
+				var indexY : uint = MathUtil.random(0,ROW_COUNT-1);
+				if(leadArr[indexY][indexX].coin) {
+					i--;
+				} else {
+					leadArr[indexY][indexX].coin = coin;
+				}
+				
+			}
 		}
 		
 		private function createLeadEffect(lead : Lead,indexX : uint,indexY: uint) : void
@@ -273,6 +304,16 @@ package cn.sftech.www.view
 			moveEffect.duration = (BASE_Y + Lead.LEAD_SIZE*indexY - lead.y)/500 + 0.3;
 			moveEffect.vars.ease(Quart.easeIn);
 			moveEffect.yTo = BASE_Y + Lead.LEAD_SIZE*indexY;
+			moveEffect.vars.onComplete(
+				function onCompleteHandle() : void{
+					if(indexY == 0) {
+						createBatchCount++;
+						if(createBatchCount == COL_COUNT-2) {
+							createBatchCount = 0;
+							checkGame();
+						}
+					}
+				});
 			moveEffect.play();
 		}
 		
@@ -346,11 +387,6 @@ package cn.sftech.www.view
 			_createTimer.start();
 		}
 		
-		private function createCoin(level : uint) : void
-		{
-			
-		}
-		
 		/**
 		 * 点击导火线执行方法
 		 * @param event 鼠标点击事件
@@ -359,11 +395,13 @@ package cn.sftech.www.view
 		private function clickLeadHandle(event : MouseEvent) : void
 		{
 			if(isFiring) return;
+			
 			if(this.mouseX < BASE_X+Lead.LEAD_SIZE || this.mouseX > BASE_X + (Lead.LEAD_SIZE*COL_COUNT-2) ||
 				this.mouseY < BASE_Y || this.mouseY > BASE_Y + Lead.LEAD_SIZE*ROW_COUNT) {
 				return;
 			}
 			
+			batterCount = 0;
 			fireTimer.stop();
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
@@ -424,6 +462,8 @@ package cn.sftech.www.view
 			if(fireLeadArr.length>0) {
 				fireTimer.reset();
 				fireTimer.start();
+			} else {
+				createCoin(1,1);
 			}
 		}
 		
@@ -476,14 +516,13 @@ package cn.sftech.www.view
 		{
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
-			while(fireLeadArr.length>0) {
+			for(var i : int = 0;i < fireLeadArr.length;i++) {
 				var fire : Fire = new Fire();
-				fire.x = leadArr[fireLeadArr[0]][0].x;
-				fire.y = leadArr[fireLeadArr[0]][0].y;
+				fire.x = leadArr[fireLeadArr[i]][0].x;
+				fire.y = leadArr[fireLeadArr[i]][0].y;
 				fire.dirIndex = 0;
 				firePane.addChild(fire);
-				changeColor(0,fireLeadArr[0],0,fire);
-				fireLeadArr.splice(0,1);
+				changeColor(0,fireLeadArr[i],0,fire);
 			}
 		}
 		
@@ -519,10 +558,10 @@ package cn.sftech.www.view
 						if(arrIndexX == 4 && arrIndexY == 2) {
 							trace("a");
 						}
-						if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
+//						if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
 							trace(arrIndexY + " ----" + arrIndexX);
 							toDelArr.push(leadArr[arrIndexY][arrIndexX]);
-						}
+//						}
 						
 					} else {
 						leadColorArr[arrIndexY][arrIndexX] = Lead.RED_COLOR;
@@ -537,6 +576,8 @@ package cn.sftech.www.view
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					leadArr[arrIndexY][arrIndexX].currentColorFlag = Lead.GREEN_COLOR;
+					
+					firedCount++;
 					
 //					kindelLead(lead);
 				} else {
@@ -593,11 +634,12 @@ package cn.sftech.www.view
 					fire = null;
 				}
 			}
+			
 		}
 		
 		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire = null) : void
 		{
-			if(arrIndexX == 6 && arrIndexY == 0) {
+			if(arrIndexX == 5 && arrIndexY == 5) {
 				trace("a");
 			}
 			
@@ -627,23 +669,7 @@ package cn.sftech.www.view
 					if(fire) {
 						if(nextIndexX >= COL_COUNT) {  //燃烧到导火线尾部
 							crackerArr[arrIndexY].kindleCracker();
-							
-							fireExportLeadArr.splice(fireExportLeadArr.indexOf(arrIndexY),1);
-							
-							if(fireExportLeadArr.length<=0) {
-								while(toDelArr.length>0) { //把以点燃的导火线删除
-									var toDelLead : Lead = toDelArr[0];
-									leadPane.removeChild(toDelLead);
-									leadArr[toDelLead.indexY][toDelLead.indexX] = null;
-									toDelArr.splice(0,1);
-									
-								}
-								
-								if(toDelArr.length == 0) {
-									test();
-									createLeadMap();
-								}
-							}
+							batterCount ++;
 						}
 						
 						firePane.removeChild(fire);
@@ -651,6 +677,30 @@ package cn.sftech.www.view
 					}
 				}
 			} else {
+				if(fire) {
+					firePane.removeChild(fire);
+					fire = null;
+				}
+			}
+			
+			if(firedCount>0 && firedCount == toDelArr.length) { //当所有的绿色导火索都被燃烧 则开始创建
+				firedCount = 0;
+				//						if(fireExportLeadArr.length<=0) {
+				while(toDelArr.length>0) { //把以点燃的导火线删除
+					var toDelLead : Lead = toDelArr[0];
+					if(toDelLead.indexX>0 && toDelLead.indexX < COL_COUNT-1) {
+						leadPane.removeChild(toDelLead);
+						leadArr[toDelLead.indexY][toDelLead.indexX] = null;
+					}
+					toDelArr.splice(0,1);
+					
+				}
+				
+				if(toDelArr.length == 0) {
+					test();
+					createLeadMap();
+				}
+				//						}
 			}
 		}
 		
