@@ -8,6 +8,8 @@ package cn.sftech.www.object
 	{
 		private var body : MovieClip;
 		
+		public var coinScore : uint;
+		
 		public function Coin()
 		{
 			super();
@@ -15,12 +17,18 @@ package cn.sftech.www.object
 		
 		public function set type(value : uint) : void
 		{
-			switch(value){
-				case 1:{body = new Coin1();};break;
-				case 2:{body = new Coin2();};break;
-				case 3:{body = new Coin5();};break;
-				case 4:{body = new Coin10();};break;
+			if(body) {
+				removeChild(body);
 			}
+			
+			switch(value){
+				case 1:{body = new Coin1();coinScore = 1;};break;
+				case 2:{body = new Coin2();coinScore = 2;};break;
+				case 3:{body = new Coin5();coinScore = 5;};break;
+				case 4:{body = new Coin10();coinScore = 10;};break;
+			}
+			
+			addChild(body);
 		}
 	}
 }
