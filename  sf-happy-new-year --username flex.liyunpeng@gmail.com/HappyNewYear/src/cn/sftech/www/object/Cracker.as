@@ -9,6 +9,8 @@ package cn.sftech.www.object
 		
 		private var _type : uint;
 		
+		private var score : uint;
+		
 		public function Cracker()
 		{
 		}
@@ -16,6 +18,11 @@ package cn.sftech.www.object
 		public function set type(value : uint) : void
 		{
 			_type = value;
+			
+			if(body) {
+				this.removeChild(body);
+			}
+			
 			switch(value) {
 				case 1:{body = new Firecracker1()};break;
 				case 2:{body = new Firecracker2()};break;
@@ -32,6 +39,11 @@ package cn.sftech.www.object
 			this.addChild(body);
 		}
 		
+		public function get type() : uint
+		{
+			return _type;
+		}
+		
 		public function kindleCracker() : void
 		{
 			this.removeChild(body);
@@ -44,7 +56,6 @@ package cn.sftech.www.object
 		{
 			if(body.currentFrame == body.totalFrames) {
 				body.removeEventListener(Event.ENTER_FRAME,explodeEnterFrameHandle);
-				this.removeChild(body);
 				type = _type;
 			} else {
 				body.nextFrame();

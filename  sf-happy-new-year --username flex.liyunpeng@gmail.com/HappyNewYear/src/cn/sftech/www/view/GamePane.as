@@ -22,6 +22,8 @@ package cn.sftech.www.view
 		
 		private var coverPane : CoverPane;
 		
+		private var maskPane : MaskPane;
+		
 		public var firePane : SFContainer;
 		
 		private const BASE_X : uint = 40;
@@ -36,7 +38,9 @@ package cn.sftech.www.view
 		//------ Config --------------------------------
 		
 		private var leadArr : Vector.<Vector.<Lead>>;
-		
+		/**
+		 * 爆竹列表
+		 */		
 		private var crackerArr : Vector.<Cracker>;
 		/**
 		 * 记录导火线颜色标记
@@ -69,6 +73,10 @@ package cn.sftech.www.view
 		 */		
 		private var fireTimer : Timer = new Timer(1000,1);
 		/**
+		 * 创建金币计时器
+		 */		
+		private var createCoinTimer : Timer = new Timer(1000,1);
+		/**
 		 * 已经点燃的数量
 		 */		
 		private var firedCount : uint = 0;
@@ -80,8 +88,18 @@ package cn.sftech.www.view
 		 * 连击次数
 		 */		
 		private var batterCount : uint = 0;
+		/**
+		 * 当前火箭级别
+		 */		
+		private var currentCrackerType : uint = 2;
+		/**
+		 * 当前爆竹指向索引
+		 */		
+		private var currentCrackerIndex : uint = Math.ceil((ROW_COUNT-1)/2);
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
+		//----------------游戏存储变量
+		private var moneyScore : uint =  0;
 		
 		////////////////////
 		private var mapData : Array = [
@@ -186,9 +204,15 @@ package cn.sftech.www.view
 			firePane.percentWidth = 100;
 			firePane.percentHeight = 100;
 			firePane.backgroundAlpha = 0;
+			
+			maskPane = new MaskPane();
+			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
+//			coinPane.mouseEnabled = false;
+			
 			this.addChild(leadPane);
 			this.addChild(coverPane);
 			this.addChild(firePane);
+			this.addChild(maskPane);
 			createEntrance();
 			createExport();
 			createCracker();
@@ -204,6 +228,7 @@ package cn.sftech.www.view
 		{
 			this.addEventListener(MouseEvent.CLICK,clickLeadHandle);
 			fireTimer.addEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
+			createCoinTimer.addEventListener(TimerEvent.TIMER_COMPLETE,createCoinHandle);
 		}
 		
 		/**
@@ -214,7 +239,7 @@ package cn.sftech.www.view
 		{
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var lead : Lead = new Lead();
-				lead.type = 1;
+				lead.type = 5;
 				lead.x = BASE_X;
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
 				leadArr[i][0] = lead;
@@ -234,7 +259,7 @@ package cn.sftech.www.view
 		{
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var lead : Lead = new Lead();
-				lead.type = 1;
+				lead.type = 5;
 				lead.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT-1);
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
 				leadArr[i][COL_COUNT-1] = lead;
@@ -256,6 +281,8 @@ package cn.sftech.www.view
 		
 		private function createLeadMap() : void
 		{
+			createCoinTimer.stop();
+			
 			for(var j : int = 1;j < COL_COUNT-1;j ++) {
 				for(var i : int = ROW_COUNT-1;i >= 0;i --) {
 					if(leadArr[i][j] == null) {
@@ -277,8 +304,25 @@ package cn.sftech.www.view
 			
 		}
 		
+		private function createCoinHandle(event : TimerEvent) : void
+		{
+			switch(batterCount) {
+				case 1:{null;};break;
+				case 2:{createCoin(2,1)};break;
+				case 3:{createCoin(3,1),createCoin(1,1)};break;
+				case 4:{createCoin(4,1),createCoin(1,2)};break;
+				case 5:{createCoin(4,2)};break;
+				case 6:{createCoin(4,3)};break;
+				case 7:{createCoin(4,4)};break;
+				case 8:{createCoin(4,5)};break;
+				case 9:{createCoin(4,6)};break;
+			}
+			
+		}
+		
 		private function createCoin(type : uint , count : uint) : void
 		{
+			
 			for(var i : int = 0;i < count;i++) {
 				var coin : Coin = new Coin();
 				coin.type = type;
@@ -306,9 +350,11 @@ package cn.sftech.www.view
 			moveEffect.yTo = BASE_Y + Lead.LEAD_SIZE*indexY;
 			moveEffect.vars.onComplete(
 				function onCompleteHandle() : void{
-					if(indexY == 0) {
+					if(indexY == 0) { 
 						createBatchCount++;
-						if(createBatchCount == COL_COUNT-2) {
+						if(createBatchCount == COL_COUNT-2) { //全部创建完
+							createCoinTimer.reset();
+							createCoinTimer.start();
 							createBatchCount = 0;
 							checkGame();
 						}
@@ -403,6 +449,7 @@ package cn.sftech.www.view
 			
 			batterCount = 0;
 			fireTimer.stop();
+			createCoinTimer.stop();
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
 			rotationLead(lead,2);
@@ -445,6 +492,31 @@ package cn.sftech.www.view
 			return leadArr[indexY][indexX];
 		}
 		
+		private function buyCracker(event : MouseEvent) : void
+		{
+			if(moneyScore < 5) return;
+			
+			moneyScore -= 5;
+			
+			crackerArr[currentCrackerIndex].type = currentCrackerType;
+			
+			if(currentCrackerIndex == ROW_COUNT-1) {
+				currentCrackerIndex = Math.ceil((ROW_COUNT-1)/2);
+				currentCrackerType ++;
+				if(currentCrackerType > 10) {
+					currentCrackerType = 10;
+				}
+			} else {
+				var index : uint = 0;
+				if(currentCrackerIndex >= Math.ceil((ROW_COUNT-1)/2)) {
+					currentCrackerIndex = 2*Math.ceil((ROW_COUNT-1)/2)-currentCrackerIndex-1;
+				} else {
+					currentCrackerIndex = 2*Math.ceil((ROW_COUNT-1)/2)-currentCrackerIndex;
+				}
+			}
+			
+		}
+		
 		/**
 		 * 检测游戏规则
 		 */		
@@ -462,8 +534,6 @@ package cn.sftech.www.view
 			if(fireLeadArr.length>0) {
 				fireTimer.reset();
 				fireTimer.start();
-			} else {
-				createCoin(1,1);
 			}
 		}
 		
@@ -526,10 +596,6 @@ package cn.sftech.www.view
 			}
 		}
 		
-		public function kindleFire(fire : Fire,index : uint) : void
-		{
-		}
-		
 		/**
 		 * 深度查找方法
 		 * 
@@ -560,7 +626,7 @@ package cn.sftech.www.view
 						}
 //						if(arrIndexX>0 && arrIndexX < COL_COUNT-1) {
 							trace(arrIndexY + " ----" + arrIndexX);
-							toDelArr.push(leadArr[arrIndexY][arrIndexX]);
+							toDelArr.push(lead);
 //						}
 						
 					} else {
@@ -575,7 +641,12 @@ package cn.sftech.www.view
 						return;
 					}
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
-					leadArr[arrIndexY][arrIndexX].currentColorFlag = Lead.GREEN_COLOR;
+					lead.currentColorFlag = Lead.GREEN_COLOR;
+					if(lead.coin) { //如果当前导火索上有金币
+						moneyScore += lead.coin.coinScore;
+						maskPane.moneyText.text = moneyScore.toString();
+						maskPane.colletCoin(lead);
+					}
 					
 					firedCount++;
 					

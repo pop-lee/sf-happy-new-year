@@ -15,7 +15,7 @@ package cn.sftech.www.object
 		public var indexX : uint;
 		public var indexY : uint;
 		
-		public var coin : Coin;
+		private var _coin : Coin;
 		
 		private var body : MovieClip;
 		
@@ -78,6 +78,11 @@ package cn.sftech.www.object
 					exportArr[2] = true;
 					exportArr[3] = true;
 				};break;
+				case 5 : {
+					this.body = new Lead5();
+					exportArr[0] = true;
+					exportArr[2] = true;
+				}
 			}
 			
 			this.body.x = LEAD_SIZE/2;
@@ -106,6 +111,17 @@ package cn.sftech.www.object
 			return _angle;
 		}
 		
+		public function set coin(obj : Coin) : void
+		{
+			_coin = obj;
+			addChild(_coin);
+		}
+		
+		public function get coin() : Coin
+		{
+			return _coin;
+		}
+		
 		public function rotationLead(effect : SFEffectBase) : void
 		{
 			angle++;
@@ -124,6 +140,16 @@ package cn.sftech.www.object
 			effect.play();
 //			this.rotation += 90;
 			
+		}
+		
+		public function colletCoin() : Coin
+		{
+			if(_coin) {
+				removeChild(_coin);
+				return _coin;
+			} else {
+				return null;
+			}
 		}
 		
 		public function set currentColorFlag(value : uint) : void
