@@ -3,6 +3,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.KindleEndEvent;
+	import cn.sftech.www.model.ModelLocator;
 	import cn.sftech.www.object.Coin;
 	import cn.sftech.www.object.Cracker;
 	import cn.sftech.www.object.Fire;
@@ -11,13 +12,19 @@ package cn.sftech.www.view
 	
 	import com.greensock.easing.Quart;
 	
+	import flash.display.MovieClip;
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
 	import flash.geom.Point;
 	import flash.utils.Timer;
+	import flash.utils.setTimeout;
 
 	public class GamePane extends SFContainer
 	{
+		private var backgroundPane : FireworksPane;
+		
+		private var pillarPane : MovieClip;
+		
 		private var leadPane : SFContainer;
 		
 		private var coverPane : CoverPane;
@@ -36,6 +43,8 @@ package cn.sftech.www.view
 		
 		private const ROW_COUNT : uint = 9;
 		//------ Config --------------------------------
+		
+		private var _model : ModelLocator = ModelLocator.getInstance();
 		
 		private var leadArr : Vector.<Vector.<Lead>>;
 		/**
@@ -57,7 +66,7 @@ package cn.sftech.www.view
 		/**
 		 * 要删除的导火线
 		 */		
-		private var toDelArr : Vector.<Lead> = new Vector.<Lead>;
+		private var toDelArr : Vector.<Lead>;
 		
 		/**
 		 * 当前颜色标记
@@ -89,17 +98,11 @@ package cn.sftech.www.view
 		 */		
 		private var batterCount : uint = 0;
 		/**
-		 * 当前火箭级别
-		 */		
-		private var currentCrackerType : uint = 2;
-		/**
 		 * 当前爆竹指向索引
 		 */		
 		private var currentCrackerIndex : uint = Math.ceil((ROW_COUNT-1)/2);
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
-		//----------------游戏存储变量
-		private var moneyScore : uint =  0;
 		
 		////////////////////
 		private var mapData : Array = [
@@ -154,6 +157,7 @@ package cn.sftech.www.view
 				[1,1,4,1,2,1],
 				[3,1,2,1,1,1],
 				[1,1,1,1,1,1]
+				
 			];
 		
 		public function GamePane()
@@ -166,7 +170,8 @@ package cn.sftech.www.view
 		 */		
 		public function init() : void
 		{
-			this.backgroundImage = gamePaneBackground;
+			this.backgroundAlpha = 0;
+//			this.backgroundImage = gamePaneBackground;
 			initData();
 			initUI();
 			initEvent();
@@ -185,6 +190,7 @@ package cn.sftech.www.view
 			crackerArr = new Vector.<Cracker>(ROW_COUNT);
 			
 			rotationEffect.duration = 0.3;
+			
 		}
 		
 		/**
@@ -192,6 +198,10 @@ package cn.sftech.www.view
 		 */		
 		private function initUI() : void
 		{
+			backgroundPane = new FireworksPane();
+			
+			pillarPane = new PillarPane();
+			
 			leadPane = new SFContainer();
 			leadPane.percentWidth = 100;
 			leadPane.percentHeight = 100;
@@ -206,9 +216,12 @@ package cn.sftech.www.view
 			firePane.backgroundAlpha = 0;
 			
 			maskPane = new MaskPane();
+			maskPane.moneyScore = _model.correntMoneyScore;
 			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
 //			coinPane.mouseEnabled = false;
 			
+			this.addChild(backgroundPane);
+			this.addChild(pillarPane);
 			this.addChild(leadPane);
 			this.addChild(coverPane);
 			this.addChild(firePane);
@@ -260,6 +273,7 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var lead : Lead = new Lead();
 				lead.type = 5;
+				rotationLead(lead,3);
 				lead.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT-1);
 				lead.y = BASE_Y + Lead.LEAD_SIZE*i;
 				leadArr[i][COL_COUNT-1] = lead;
@@ -272,7 +286,7 @@ package cn.sftech.www.view
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				var cracker : Cracker = new Cracker();
 				cracker.type = 1;
-				cracker.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT);
+				cracker.x = BASE_X + Lead.LEAD_SIZE*(COL_COUNT) - 10;
 				cracker.y = BASE_Y + Lead.LEAD_SIZE*(i + 0.5);
 				crackerArr[i] = cracker;
 				firePane.addChild(cracker);
@@ -448,8 +462,10 @@ package cn.sftech.www.view
 			}
 			
 			batterCount = 0;
+			firedCount = 0;
 			fireTimer.stop();
 			createCoinTimer.stop();
+			toDelArr = new Vector.<Lead>();
 			
 			var lead : Lead = getLead(this.mouseX,this.mouseY);
 			rotationLead(lead,2);
@@ -494,24 +510,19 @@ package cn.sftech.www.view
 		
 		private function buyCracker(event : MouseEvent) : void
 		{
-			if(moneyScore < 5) return;
+			if(maskPane.moneyScore < 5) return;
 			
-			moneyScore -= 5;
+			maskPane.buyCracker(crackerArr[currentCrackerIndex]);
 			
-			crackerArr[currentCrackerIndex].type = currentCrackerType;
+			var middleIndex : uint = Math.ceil((ROW_COUNT-1)/2);
 			
 			if(currentCrackerIndex == ROW_COUNT-1) {
-				currentCrackerIndex = Math.ceil((ROW_COUNT-1)/2);
-				currentCrackerType ++;
-				if(currentCrackerType > 10) {
-					currentCrackerType = 10;
-				}
+				currentCrackerIndex = middleIndex;
 			} else {
-				var index : uint = 0;
-				if(currentCrackerIndex >= Math.ceil((ROW_COUNT-1)/2)) {
-					currentCrackerIndex = 2*Math.ceil((ROW_COUNT-1)/2)-currentCrackerIndex-1;
+				if(currentCrackerIndex >= middleIndex) {
+					currentCrackerIndex = 2*middleIndex-currentCrackerIndex-1;
 				} else {
-					currentCrackerIndex = 2*Math.ceil((ROW_COUNT-1)/2)-currentCrackerIndex;
+					currentCrackerIndex = 2*middleIndex-currentCrackerIndex;
 				}
 			}
 			
@@ -643,8 +654,7 @@ package cn.sftech.www.view
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					lead.currentColorFlag = Lead.GREEN_COLOR;
 					if(lead.coin) { //如果当前导火索上有金币
-						moneyScore += lead.coin.coinScore;
-						maskPane.moneyText.text = moneyScore.toString();
+						maskPane.moneyScore += lead.coin.coinScore;
 						maskPane.colletCoin(lead);
 					}
 					
@@ -770,8 +780,18 @@ package cn.sftech.www.view
 				if(toDelArr.length == 0) {
 					test();
 					createLeadMap();
+					
+					kindleFireworks(batterCount);
 				}
 				//						}
+			}
+		}
+		
+		private function kindleFireworks(count : uint) : void
+		{
+			for(var i : int = 0;i < count;i++) {
+				setTimeout(backgroundPane.kindleFireworks,700*i);
+//				maskPane.kindleFireworks();
 			}
 		}
 		
@@ -788,24 +808,12 @@ package cn.sftech.www.view
 		
 		private function test() : void
 		{
-//			for(var i : int = 0;i < ROW_COUNT;i ++) {
-//				var temp : String = "[";
-//				for(var j : int = 0;j < COL_COUNT;j ++) {
-//					if(leadArr[i][j]) {
-//						temp += leadArr[i][j].type + ",";
-//					} else {
-//						temp += "^,"
-//					}
-//				}
-//				temp += "]";
-//				trace(temp);
-//			}
-			
+			trace("---------------map------------");
 			for(var i : int = 0;i < ROW_COUNT;i ++) {
 				var temp : String = "[";
 				for(var j : int = 0;j < COL_COUNT;j ++) {
 					if(leadArr[i][j]) {
-						temp += leadArr[i][j].angle + ",";
+						temp += leadArr[i][j].type + ",";
 					} else {
 						temp += "^,"
 					}
@@ -813,6 +821,22 @@ package cn.sftech.www.view
 				temp += "]";
 				trace(temp);
 			}
+			trace("---------------map------------");
+			
+			trace("---------------rotation------------");
+			for(var m : int = 0;m < ROW_COUNT;m ++) {
+				var temp2 : String = "[";
+				for(var n : int = 0;n < COL_COUNT;n ++) {
+					if(leadArr[m][n]) {
+						temp2 += leadArr[m][n].angle + ",";
+					} else {
+						temp2 += "^,"
+					}
+				}
+				temp2 += "]";
+				trace(temp2);
+			}
+			trace("---------------rotation------------");
 		}
 	}
 }

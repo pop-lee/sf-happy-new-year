@@ -48,6 +48,8 @@ package cn.sftech.www.object
 		{
 			this.removeChild(body);
 			body = new Explode();
+			body.x = 30;
+			body.y = -10;
 			body.addEventListener(Event.ENTER_FRAME,explodeEnterFrameHandle);
 			this.addChild(body);
 		}
