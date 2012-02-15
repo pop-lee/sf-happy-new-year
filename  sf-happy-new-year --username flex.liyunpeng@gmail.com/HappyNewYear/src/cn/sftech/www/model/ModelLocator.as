@@ -8,6 +8,8 @@ package cn.sftech.www.model
 		private static var _model : ModelLocator = new ModelLocator();
 		
 		public var correntMoneyScore : uint = 2000;
+		
+		public var currentGameMode : uint = 0;
 		//=================================
 //		
 //		/**

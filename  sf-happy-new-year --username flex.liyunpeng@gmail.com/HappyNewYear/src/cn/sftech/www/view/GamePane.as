@@ -3,6 +3,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.KindleEndEvent;
+	import cn.sftech.www.model.GameConfig;
 	import cn.sftech.www.model.ModelLocator;
 	import cn.sftech.www.object.Coin;
 	import cn.sftech.www.object.Cracker;
@@ -31,6 +32,8 @@ package cn.sftech.www.view
 		
 		private var maskPane : MaskPane;
 		
+		private var lightBox : LightBox;
+		
 		public var firePane : SFContainer;
 		
 		private const BASE_X : uint = 40;
@@ -43,6 +46,16 @@ package cn.sftech.www.view
 		
 		private const ROW_COUNT : uint = 9;
 		//------ Config --------------------------------
+		/**
+		 * 游戏计时器
+		 */		
+		private var gameTimer : Timer;
+		/**
+		 * 火柴数量
+		 */		
+		private var matchesCount : uint = 0;
+		
+		//-------Mode ----------------------------------
 		
 		private var _model : ModelLocator = ModelLocator.getInstance();
 		
@@ -67,16 +80,22 @@ package cn.sftech.www.view
 		 * 要删除的导火线
 		 */		
 		private var toDelArr : Vector.<Lead>;
-		
 		/**
 		 * 当前颜色标记
 		 */		
 		private var currentColorFlag : uint = 1;
-		
 		/**
 		 * 标记当前是否在点燃状态
 		 */
 		private var isFiring : Boolean = false;
+		/**
+		 * 是否在创建状态
+		 */		
+		private var isCreating : Boolean = false;
+		/**
+		 * 是否在暂停状态
+		 */		
+		private var isPausing : Boolean = false;
 		/**
 		 * 准备点火倒计时
 		 */		
@@ -175,6 +194,8 @@ package cn.sftech.www.view
 			initData();
 			initUI();
 			initEvent();
+			
+			initMode();
 		}
 		
 		/**
@@ -182,6 +203,8 @@ package cn.sftech.www.view
 		 */		
 		private function initData() : void
 		{
+			_model.currentGameMode = 1;
+			
 			leadArr = new Vector.<Vector.<Lead>>(ROW_COUNT);
 			for(var i : int = 0;i < leadArr.length;i++) {
 				leadArr[i] = new Vector.<Lead>(COL_COUNT);
@@ -219,6 +242,10 @@ package cn.sftech.www.view
 			maskPane.moneyScore = _model.correntMoneyScore;
 			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
 //			coinPane.mouseEnabled = false;
+			lightBox = new LightBox();
+			lightBox.x = 29;
+			lightBox.y = 245;
+			maskPane.addChild(lightBox);
 			
 			this.addChild(backgroundPane);
 			this.addChild(pillarPane);
@@ -243,6 +270,34 @@ package cn.sftech.www.view
 			fireTimer.addEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
 			createCoinTimer.addEventListener(TimerEvent.TIMER_COMPLETE,createCoinHandle);
 		}
+		/**
+		 * 
+		 * 
+		 */
+		private function initMode() : void
+		{
+			switch(_model.currentGameMode) {
+				case 1:{
+					gameTimer = new Timer(1000);
+					gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
+					gameTimer.start();
+				};break;
+				case 2: {
+					lightBox.process = 1;
+					matchesCount = 10;
+				};break;
+			}
+		}
+		
+		private function gameTimerHandle(event : TimerEvent) : void
+		{
+			lightBox.process = gameTimer.currentCount / GameConfig.TIMER_LINE;
+			if(gameTimer.currentCount == GameConfig.TIMER_LINE) {
+				gameOver();
+				gameTimer.stop();
+				gameTimer.removeEventListener(TimerEvent.TIMER,gameTimerHandle);
+			}
+		}
 		
 		/**
 		 * 创建入口导火线
@@ -264,6 +319,7 @@ package cn.sftech.www.view
 				firePane.addChild(fire);
 			}
 		}
+		
 		/**
 		 * 创建出口导火线
 		 * 
@@ -293,6 +349,10 @@ package cn.sftech.www.view
 			}
 		}
 		
+		/**
+		 * 在舞台创建导火索地图
+		 * 
+		 */		
 		private function createLeadMap() : void
 		{
 			createCoinTimer.stop();
@@ -300,15 +360,12 @@ package cn.sftech.www.view
 			for(var j : int = 1;j < COL_COUNT-1;j ++) {
 				for(var i : int = ROW_COUNT-1;i >= 0;i --) {
 					if(leadArr[i][j] == null) {
+						isCreating = true;
 						createLead4Column(j,i);
 //						hasBlank = true;
 						break;
 					}
 				}
-				
-//				for(var m : int = ROW_COUNT-1;m >= 0;m --) {
-//					createLeadEffect(leadArr[m][j],j,m);
-//				}
 			}
 			
 			mapData = null;
@@ -318,9 +375,23 @@ package cn.sftech.www.view
 			
 		}
 		
+		/**
+		 * 相隔一定时间后创建金币
+		 * @param event
+		 * 
+		 */		
 		private function createCoinHandle(event : TimerEvent) : void
 		{
-			switch(batterCount) {
+			createCoinByBatter();
+		}
+		/**
+		 * 根据连击次数创建金币
+		 * @param batterCount 连击次数
+		 * 
+		 */		
+		private function createCoinByBatter() : void
+		{
+			switch(this.batterCount) {
 				case 1:{null;};break;
 				case 2:{createCoin(2,1)};break;
 				case 3:{createCoin(3,1),createCoin(1,1)};break;
@@ -331,9 +402,15 @@ package cn.sftech.www.view
 				case 8:{createCoin(4,5)};break;
 				case 9:{createCoin(4,6)};break;
 			}
-			
+			this.batterCount = 0;
 		}
 		
+		/**
+		 * 执行创建金币
+		 * @param type 创建金币的类型
+		 * @param count 创建金币的数量
+		 * 
+		 */		
 		private function createCoin(type : uint , count : uint) : void
 		{
 			
@@ -352,21 +429,27 @@ package cn.sftech.www.view
 			}
 		}
 		
-		private function createLeadEffect(lead : Lead,indexX : uint,indexY: uint) : void
+		/**
+		 * 创建导火索的效果
+		 * @param lead 需要创建在二维数组中指定位置的导火索
+		 * 
+		 */		
+		private function createLeadEffect(lead : Lead) : void
 		{
 //			lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
 //			lead.y = BASE_Y + Lead.LEAD_SIZE*indexY;
 			
 			var moveEffect : SFMoveEffect = new SFMoveEffect();
 			moveEffect.target = lead;
-			moveEffect.duration = (BASE_Y + Lead.LEAD_SIZE*indexY - lead.y)/500 + 0.3;
+			moveEffect.duration = (BASE_Y + Lead.LEAD_SIZE*lead.indexY - lead.y)/500 + 0.3;
 			moveEffect.vars.ease(Quart.easeIn);
-			moveEffect.yTo = BASE_Y + Lead.LEAD_SIZE*indexY;
+			moveEffect.yTo = BASE_Y + Lead.LEAD_SIZE*lead.indexY;
 			moveEffect.vars.onComplete(
 				function onCompleteHandle() : void{
-					if(indexY == 0) { 
+					if(lead.indexY == 0) { 
 						createBatchCount++;
 						if(createBatchCount == COL_COUNT-2) { //全部创建完
+							isCreating = false;
 							createCoinTimer.reset();
 							createCoinTimer.start();
 							createBatchCount = 0;
@@ -377,6 +460,12 @@ package cn.sftech.www.view
 			moveEffect.play();
 		}
 		
+		/**
+		 * 根据列来创建导火索
+		 * @param indexX 创建所在的indexX列
+		 * @param indexY 从指定的Y索引开始创建
+		 * 
+		 */		
 		private function createLead4Column(indexX : uint,indexY : uint) : void
 		{
 			var blankBlockCount : uint = 0;
@@ -384,9 +473,6 @@ package cn.sftech.www.view
 				blankBlockCount = ROW_COUNT;
 				for(var a : int = ROW_COUNT-1;a >= 0; a--) {
 					var lead : Lead = new Lead();
-					if(indexY == 8 && indexX == 6) {
-						trace(indexY + " " + indexX);
-					}
 					lead.type = mapData[a][indexX-1];
 					rotationLead(lead,leadAngleArr[a][indexX-1]);
 					lead.indexX = indexX;
@@ -408,7 +494,7 @@ package cn.sftech.www.view
 						moveLead.indexY = i+blankBlockCount;
 						leadArr[i+blankBlockCount][indexX] = moveLead;
 						leadArr[i][indexX] = null;
-						createLeadEffect(leadArr[i+blankBlockCount][indexX],indexX,i+blankBlockCount);
+						createLeadEffect(leadArr[i+blankBlockCount][indexX]);
 					}
 				}
 				
@@ -429,8 +515,9 @@ package cn.sftech.www.view
 					creLead.indexY = k;
 					creLead.x = BASE_X + Lead.LEAD_SIZE*indexX;
 					creLead.y = CRE_Y;
-					
 					leadArr[k][indexX] = creLead;
+					leadAngleArr[k][indexX] = MathUtil.random(1,5);
+					rotationLead(creLead,leadAngleArr[k][indexX]);
 //					leadPane.addChild(creLead);
 				}
 			}
@@ -442,7 +529,7 @@ package cn.sftech.www.view
 					var iy : uint = _createTimer.repeatCount - _createTimer.currentCount;
 					var curlead : Lead = leadArr[iy][indexX];
 					leadPane.addChild(curlead);
-					createLeadEffect(curlead,indexX,iy);
+					createLeadEffect(curlead);
 				});
 			_createTimer.start();
 		}
@@ -454,14 +541,15 @@ package cn.sftech.www.view
 		 */		
 		private function clickLeadHandle(event : MouseEvent) : void
 		{
-			if(isFiring) return;
+			if(isFiring||isCreating||isPausing) return;
 			
 			if(this.mouseX < BASE_X+Lead.LEAD_SIZE || this.mouseX > BASE_X + (Lead.LEAD_SIZE*COL_COUNT-2) ||
 				this.mouseY < BASE_Y || this.mouseY > BASE_Y + Lead.LEAD_SIZE*ROW_COUNT) {
 				return;
 			}
 			
-			batterCount = 0;
+			createCoinByBatter();
+//			batterCount = 0;
 			firedCount = 0;
 			fireTimer.stop();
 			createCoinTimer.stop();
@@ -475,7 +563,12 @@ package cn.sftech.www.view
 			
 			test();
 		}
-		
+		/**
+		 * 旋转导火索
+		 * @param lead 需要旋转的导火索对象
+		 * @param count 旋转count-1次数
+		 * 
+		 */		
 		private function rotationLead(lead : Lead,count : uint) : void
 		{
 			for(var i : int = 1;i < count;i++) {
@@ -508,6 +601,11 @@ package cn.sftech.www.view
 			return leadArr[indexY][indexX];
 		}
 		
+		/**
+		 * 买爆竹
+		 * @param event
+		 * 
+		 */		
 		private function buyCracker(event : MouseEvent) : void
 		{
 			if(maskPane.moneyScore < 5) return;
@@ -592,7 +690,11 @@ package cn.sftech.www.view
 				}
 			}
 		}
-		
+		/**
+		 * 经过一定时间开始点燃
+		 * @param event 经过一定时间后触发的计时器事件
+		 * 
+		 */		
 		private function startKindle(event : TimerEvent) : void
 		{
 			isFiring = true;
@@ -608,7 +710,11 @@ package cn.sftech.www.view
 		}
 		
 		/**
-		 * 深度查找方法
+		 * 查询后改变颜色
+		 * @param arrIndexX 在导火索地图中的X索引
+		 * @param arrIndexY 在导火索地图中的Y索引
+		 * @param index 导火索入口方向
+		 * @param fire 传递火，若为null则仅查找，若不为null，则点燃传递
 		 * 
 		 */		
 		private function changeColor(arrIndexX : int,arrIndexY : int,index : int,fire : Fire=null) : void
@@ -617,7 +723,6 @@ package cn.sftech.www.view
 			//如果当前入口索引是通的
 				
 			//如果当前检测块的颜色已经是检证过的 则返回
-			
 			
 			if(lead.exportArr[index]) { //如果和上一个导火线对上了
 				if(currentColorFlag == Lead.RED_COLOR) {
@@ -718,6 +823,10 @@ package cn.sftech.www.view
 			
 		}
 		
+		/**
+		 * 深度查找方法
+		 * 
+		 */	
 		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire = null) : void
 		{
 			if(arrIndexX == 5 && arrIndexY == 5) {
@@ -794,6 +903,22 @@ package cn.sftech.www.view
 //				maskPane.kindleFireworks();
 			}
 		}
+		/**
+		 * 检测游戏通过
+		 * 
+		 */		
+		private function checkSuccess() : void
+		{
+			
+		}
+		/**
+		 * 游戏结束方法
+		 * 
+		 */		
+		private function gameOver() : void
+		{
+			
+		}
 		
 		/*
 		检测方法：
@@ -802,7 +927,6 @@ package cn.sftech.www.view
 		遍历整个导火索数组，将导火索颜色按照标记改为标记颜色
 		经过若干毫秒的等待，若没有其他事件，则点燃导火索
 		讲以燃烧的导火索改为绿色
-		
 		*/
 		
 		
