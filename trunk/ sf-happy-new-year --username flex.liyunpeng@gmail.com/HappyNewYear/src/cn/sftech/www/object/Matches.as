@@ -7,7 +7,7 @@ package cn.sftech.www.object
 		public function Matches()
 		{
 			super();
-			this.backgroundImage = Matches;
+			this.backgroundImage = MatchesBody;
 		}
 	}
 }

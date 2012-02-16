@@ -6,10 +6,12 @@ package cn.sftech.www.model
 		 * 烟火燃烧速度（单位：秒）
 		 */		
 		public static const KINDLE_SPEED : Number = 0.02;
-		/**
-		 * 游戏倒计时秒数
-		 */		
-		public static const TIMER_LINE : uint = 100;
+		
+		public static const HARD_TYPE : uint = 3;
+		
+		public static const NORMAL_TYPE : uint = 2;
+		
+		public static const EASY_TYPE : uint = 1;
 		
 		public function GameConfig()
 		{

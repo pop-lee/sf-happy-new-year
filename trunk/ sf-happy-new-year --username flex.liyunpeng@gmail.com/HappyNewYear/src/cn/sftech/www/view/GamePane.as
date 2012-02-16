@@ -9,6 +9,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.object.Cracker;
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
+	import cn.sftech.www.object.Matches;
 	import cn.sftech.www.util.MathUtil;
 	
 	import com.greensock.easing.Quart;
@@ -46,6 +47,9 @@ package cn.sftech.www.view
 		
 		private const ROW_COUNT : uint = 9;
 		//------ Config --------------------------------
+		
+		private var gameTimerLine : uint;
+		
 		/**
 		 * 游戏计时器
 		 */		
@@ -115,7 +119,7 @@ package cn.sftech.www.view
 		/**
 		 * 连击次数
 		 */		
-		private var batterCount : uint = 0;
+		private var batterCount : int = 0;
 		/**
 		 * 当前爆竹指向索引
 		 */		
@@ -203,7 +207,8 @@ package cn.sftech.www.view
 		 */		
 		private function initData() : void
 		{
-			_model.currentGameMode = 1;
+			_model.currentGameMode = 2;
+			_model.currentDifficultyMode = 1;
 			
 			leadArr = new Vector.<Vector.<Lead>>(ROW_COUNT);
 			for(var i : int = 0;i < leadArr.length;i++) {
@@ -240,6 +245,7 @@ package cn.sftech.www.view
 			
 			maskPane = new MaskPane();
 			maskPane.moneyScore = _model.correntMoneyScore;
+			maskPane.gameScore = _model.gameScore;
 			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
 //			coinPane.mouseEnabled = false;
 			lightBox = new LightBox();
@@ -268,7 +274,7 @@ package cn.sftech.www.view
 		{
 			this.addEventListener(MouseEvent.CLICK,clickLeadHandle);
 			fireTimer.addEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
-			createCoinTimer.addEventListener(TimerEvent.TIMER_COMPLETE,createCoinHandle);
+			createCoinTimer.addEventListener(TimerEvent.TIMER_COMPLETE,createCoinAndMatchesHandle);
 		}
 		/**
 		 * 
@@ -278,21 +284,35 @@ package cn.sftech.www.view
 		{
 			switch(_model.currentGameMode) {
 				case 1:{
+					switch(_model.currentDifficultyMode) {
+						case GameConfig.EASY_TYPE:{gameTimerLine = 100};break;
+						case GameConfig.NORMAL_TYPE:{gameTimerLine = 90};break;
+						case GameConfig.HARD_TYPE:{gameTimerLine = 80};break;
+					}
 					gameTimer = new Timer(1000);
 					gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
 					gameTimer.start();
+					maskPane.propsIcon = _model.currentGameMode;
 				};break;
 				case 2: {
 					lightBox.process = 1;
 					matchesCount = 10;
+					maskPane.propsIcon = _model.currentGameMode;
+					switch(_model.currentDifficultyMode) {
+						case GameConfig.EASY_TYPE:{matchesCount = 10};break;
+						case GameConfig.NORMAL_TYPE:{matchesCount = 8};break;
+						case GameConfig.HARD_TYPE:{matchesCount = 6};break;
+					}
+					
+					maskPane.propsCount = matchesCount;
 				};break;
 			}
 		}
 		
 		private function gameTimerHandle(event : TimerEvent) : void
 		{
-			lightBox.process = gameTimer.currentCount / GameConfig.TIMER_LINE;
-			if(gameTimer.currentCount == GameConfig.TIMER_LINE) {
+			lightBox.process = gameTimer.currentCount / gameTimerLine;
+			if(gameTimer.currentCount == gameTimerLine) {
 				gameOver();
 				gameTimer.stop();
 				gameTimer.removeEventListener(TimerEvent.TIMER,gameTimerHandle);
@@ -380,16 +400,16 @@ package cn.sftech.www.view
 		 * @param event
 		 * 
 		 */		
-		private function createCoinHandle(event : TimerEvent) : void
+		private function createCoinAndMatchesHandle(event : TimerEvent) : void
 		{
-			createCoinByBatter();
+			createCoinAndMatchesByBatter();
 		}
 		/**
-		 * 根据连击次数创建金币
+		 * 根据连击次数创建金币和火柴
 		 * @param batterCount 连击次数
 		 * 
 		 */		
-		private function createCoinByBatter() : void
+		private function createCoinAndMatchesByBatter() : void
 		{
 			switch(this.batterCount) {
 				case 1:{null;};break;
@@ -402,6 +422,9 @@ package cn.sftech.www.view
 				case 8:{createCoin(4,5)};break;
 				case 9:{createCoin(4,6)};break;
 			}
+			if(_model.currentGameMode == 2) {
+				createMatches(this.batterCount-2);
+			}
 			this.batterCount = 0;
 		}
 		
@@ -411,7 +434,7 @@ package cn.sftech.www.view
 		 * @param count 创建金币的数量
 		 * 
 		 */		
-		private function createCoin(type : uint , count : uint) : void
+		private function createCoin(type : uint , count : int) : void
 		{
 			
 			for(var i : int = 0;i < count;i++) {
@@ -420,12 +443,26 @@ package cn.sftech.www.view
 				
 				var indexX : uint = MathUtil.random(1,COL_COUNT-1);
 				var indexY : uint = MathUtil.random(0,ROW_COUNT-1);
-				if(leadArr[indexY][indexX].coin) {
+				if(leadArr[indexY][indexX].coin || leadArr[indexY][indexX].matches) {
 					i--;
 				} else {
 					leadArr[indexY][indexX].coin = coin;
 				}
+			}
+		}
+		
+		private function createMatches(count : int) : void
+		{
+			for(var i : int = 0;i < count;i++) {
+				var matches : Matches = new Matches();
 				
+				var indexX : uint = MathUtil.random(1,COL_COUNT-1);
+				var indexY : uint = MathUtil.random(0,ROW_COUNT-1);
+				if(leadArr[indexY][indexX].matches || leadArr[indexY][indexX].coin) {
+					i--;
+				} else {
+					leadArr[indexY][indexX].matches = matches;
+				}
 			}
 		}
 		
@@ -548,7 +585,7 @@ package cn.sftech.www.view
 				return;
 			}
 			
-			createCoinByBatter();
+			createCoinAndMatchesByBatter();
 //			batterCount = 0;
 			firedCount = 0;
 			fireTimer.stop();
@@ -756,11 +793,21 @@ package cn.sftech.www.view
 						}
 						return;
 					}
+					if(arrIndexX == 0) {
+						matchesCount --;
+						maskPane.propsCount = matchesCount;
+					}
+					
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
 					lead.currentColorFlag = Lead.GREEN_COLOR;
 					if(lead.coin) { //如果当前导火索上有金币
 						maskPane.moneyScore += lead.coin.coinScore;
 						maskPane.colletCoin(lead);
+					}
+					if(lead.matches) { //如果当前导火索上有火柴
+						matchesCount ++;
+						maskPane.propsCount = matchesCount;
+						maskPane.colletMatches(lead);
 					}
 					
 					firedCount++;

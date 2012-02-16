@@ -6,8 +6,10 @@ package cn.sftech.www.view
 	import cn.sftech.www.object.Cracker;
 	import cn.sftech.www.object.Fireworks;
 	import cn.sftech.www.object.Lead;
+	import cn.sftech.www.object.Matches;
 	import cn.sftech.www.util.MathUtil;
 	
+	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
@@ -17,15 +19,17 @@ package cn.sftech.www.view
 	
 	public class MaskPane extends MovieClip
 	{
-		private var _moneyScore : uint;
+		private var _moneyScore : int;
+		
+		private var _propsCount : int;
+		
+		private var _gameScore : int;
 		
 		private var bottomPane : BottomPane;
 		
 		private var topPane : TopPane;
 		
 		public var boxBtn : MovieClip;
-		
-		private var moneyText : TextField;
 		
 		public function MaskPane()
 		{
@@ -42,18 +46,44 @@ package cn.sftech.www.view
 			addChild(topPane);
 			
 			boxBtn = topPane.boxBtn;
-			moneyText = topPane.moneyText;
 		}
 		
-		public function set moneyScore(value : uint) : void
+		public function set moneyScore(value : int) : void
 		{
 			_moneyScore = value;
-			moneyText.text = _moneyScore.toString();
+			topPane.moneyText.text = _moneyScore.toString();
 		}
 		
-		public function get moneyScore() : uint
+		public function get moneyScore() : int
 		{
 			return _moneyScore;
+		}
+		
+		public function set propsCount(value : int) : void
+		{
+			_propsCount = value;
+			topPane.propsCount.text = value.toString();
+		}
+		
+		public function get propsCount() : int
+		{
+			return _propsCount;
+		}
+		
+		public function set gameScore(value : int) : void
+		{
+			_gameScore = value;
+			topPane.gameScore.text = value.toString();
+		}
+		
+		public function get getScore() : int
+		{
+			return _gameScore;
+		}
+		
+		public function set propsIcon(modelValue : uint) : void
+		{
+			topPane.propsIcon.gotoAndStop(modelValue);
 		}
 		
 		/**
@@ -73,6 +103,28 @@ package cn.sftech.www.view
 			effect.xTo = 120;
 			effect.yTo = 750;
 			effect.duration = 0.5;
+			effect.vars.onComplete(effectEndremoveTarget,[coin]);
+			effect.play();
+		}
+		
+		/**
+		 * 提取导火索上的火柴
+		 * @param lead 火柴所在的导火索
+		 * 
+		 */		
+		public function colletMatches(lead : Lead) : void
+		{
+			var matches : Matches = lead.colletMatches();
+			matches.x = lead.x;
+			matches.y = lead.y;
+			bottomPane.addChild(matches);
+			
+			var effect : SFMoveEffect = new SFMoveEffect();
+			effect.target = matches;
+			effect.xTo = 184;
+			effect.yTo = 178;
+			effect.duration = 0.5;
+			effect.vars.onComplete(effectEndremoveTarget,[matches]);
 			effect.play();
 		}
 		
@@ -102,11 +154,14 @@ package cn.sftech.www.view
 			effect.target = coin;
 			effect.xTo = cracker.x;
 			effect.yTo = cracker.y-40;
-			effect.vars.onComplete(function endBuy(target : Coin) : void
-			{
-				bottomPane.removeChild(target);
-			},[coin]);
+			effect.vars.onComplete(effectEndremoveTarget,[coin]);
 			effect.play();
+		}
+		
+		private function effectEndremoveTarget(target : DisplayObject) : void
+		{
+			bottomPane.removeChild(target);
+			target = null;
 		}
 	}
 }
