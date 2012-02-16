@@ -17,6 +17,8 @@ package cn.sftech.www.object
 		
 		private var _coin : Coin;
 		
+		private var _matches : Matches;
+		
 		private var body : MovieClip;
 		
 		public static const LEAD_SIZE : uint = 50;
@@ -122,6 +124,17 @@ package cn.sftech.www.object
 			return _coin;
 		}
 		
+		public function set matches(obj : Matches) : void
+		{
+			_matches = obj;
+			addChild(_matches);
+		}
+		
+		public function get matches() : Matches
+		{
+			return _matches;
+		}
+		
 		public function rotationLead(effect : SFEffectBase) : void
 		{
 			angle++;
@@ -147,6 +160,16 @@ package cn.sftech.www.object
 			if(_coin) {
 				removeChild(_coin);
 				return _coin;
+			} else {
+				return null;
+			}
+		}
+		
+		public function colletMatches() : Matches
+		{
+			if(_matches) {
+				removeChild(_matches);
+				return _matches;
 			} else {
 				return null;
 			}

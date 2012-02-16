@@ -9,7 +9,13 @@ package cn.sftech.www.model
 		
 		public var correntMoneyScore : uint = 2000;
 		
+		public var gameScore : uint = 0;
+		
+		public var propsCount : uint = 0;
+		
 		public var currentGameMode : uint = 0;
+		
+		public var currentDifficultyMode : uint = 0;
 		//=================================
 //		
 //		/**
