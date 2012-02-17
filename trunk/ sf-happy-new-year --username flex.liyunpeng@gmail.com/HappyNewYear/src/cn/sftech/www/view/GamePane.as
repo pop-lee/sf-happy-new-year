@@ -23,7 +23,7 @@ package cn.sftech.www.view
 
 	public class GamePane extends SFContainer
 	{
-		private var backgroundPane : FireworksPane;
+		private var fireworksPane : FireworksPane;
 		
 		private var pillarPane : MovieClip;
 		
@@ -194,7 +194,7 @@ package cn.sftech.www.view
 		public function init() : void
 		{
 			this.backgroundAlpha = 0;
-//			this.backgroundImage = gamePaneBackground;
+			this.backgroundImage = gamePaneBackground;
 			initData();
 			initUI();
 			initEvent();
@@ -226,7 +226,7 @@ package cn.sftech.www.view
 		 */		
 		private function initUI() : void
 		{
-			backgroundPane = new FireworksPane();
+			fireworksPane = new FireworksPane();
 			
 			pillarPane = new PillarPane();
 			
@@ -253,12 +253,12 @@ package cn.sftech.www.view
 			lightBox.y = 245;
 			maskPane.addChild(lightBox);
 			
-			this.addChild(backgroundPane);
 			this.addChild(pillarPane);
 			this.addChild(leadPane);
 			this.addChild(coverPane);
 			this.addChild(firePane);
 			this.addChild(maskPane);
+			this.addChild(fireworksPane);
 			createEntrance();
 			createExport();
 			createCracker();
@@ -736,6 +736,12 @@ package cn.sftech.www.view
 		{
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
+			
+			if(_model.currentGameMode == 2) {
+				matchesCount --;
+				maskPane.propsCount = matchesCount;
+			}
+			
 			for(var i : int = 0;i < fireLeadArr.length;i++) {
 				var fire : Fire = new Fire();
 				fire.x = leadArr[fireLeadArr[i]][0].x;
@@ -792,10 +798,6 @@ package cn.sftech.www.view
 							firePane.removeChild(fire);
 						}
 						return;
-					}
-					if(arrIndexX == 0) {
-						matchesCount --;
-						maskPane.propsCount = matchesCount;
 					}
 					
 					leadColorArr[arrIndexY][arrIndexX] = Lead.GREEN_COLOR;
@@ -946,7 +948,7 @@ package cn.sftech.www.view
 		private function kindleFireworks(count : uint) : void
 		{
 			for(var i : int = 0;i < count;i++) {
-				setTimeout(backgroundPane.kindleFireworks,700*i);
+				setTimeout(fireworksPane.kindleFireworks,300*i);
 //				maskPane.kindleFireworks();
 			}
 		}
