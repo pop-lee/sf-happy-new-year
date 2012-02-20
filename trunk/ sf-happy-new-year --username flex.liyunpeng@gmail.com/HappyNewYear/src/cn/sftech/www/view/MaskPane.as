@@ -76,7 +76,7 @@ package cn.sftech.www.view
 			topPane.gameScore.text = value.toString();
 		}
 		
-		public function get getScore() : int
+		public function get gameScore() : int
 		{
 			return _gameScore;
 		}

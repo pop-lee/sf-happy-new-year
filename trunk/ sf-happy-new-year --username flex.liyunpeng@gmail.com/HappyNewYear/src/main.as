@@ -5,7 +5,9 @@ package
 	import cn.sftech.www.event.SFInitializeDataEvent;
 	import cn.sftech.www.events.ChangePageEvent;
 	import cn.sftech.www.util.DataManager;
+	import cn.sftech.www.view.DifficultyPage;
 	import cn.sftech.www.view.GamePage;
+	import cn.sftech.www.view.MainPage;
 	import cn.sftech.www.view.SFApplication;
 	import cn.sftech.www.view.SFLogo;
 	import cn.sftech.www.view.SFViewStack;
@@ -23,12 +25,13 @@ package
 	{
 		public function main()
 		{
-			
 		}
 		
 		private var vs : SFViewStack;
 		
-//		private var mainPage : MainPage;
+		private var mainPage : MainPage;
+		
+		private var difficultyPage : DifficultyPage;
 		
 		private var gamePage : GamePage;
 		
@@ -109,10 +112,14 @@ package
 			vs.effect = vsEffect;
 			addChildAt(vs,0);
 			
-//			mainPage = new MainPage();
-//			mainPage.addEventListener(ChangePageEvent.CHANGE_PAGE_EVENT,changePageHandle);
-//			vs.addItem(mainPage);
-//			mainPage.init();
+			mainPage = new MainPage();
+			mainPage.addEventListener(ChangePageEvent.CHANGE_PAGE_EVENT,changePageHandle);
+			vs.addItem(mainPage);
+			mainPage.init();
+			
+			difficultyPage = new DifficultyPage();
+			difficultyPage.addEventListener(ChangePageEvent.CHANGE_PAGE_EVENT,changePageHandle);
+			vs.addItem(difficultyPage);
 			
 			gamePage = new GamePage();
 			gamePage.percentWidth = 100;
@@ -120,7 +127,6 @@ package
 			gamePage.backgroundAlpha = 0;
 			gamePage.addEventListener(ChangePageEvent.CHANGE_PAGE_EVENT,changePageHandle);
 			vs.addItem(gamePage);
-			gamePage.init();
 			
 //			helpPage = new HelpPage();
 //			helpPage.addEventListener(ChangePageEvent.CHANGE_PAGE_EVENT,changePageHandle);
@@ -130,7 +136,9 @@ package
 		private function changePageHandle(event : ChangePageEvent) : void
 		{
 			if(event.data == ChangePageEvent.TO_MAIN_PAGE) {
-//				mainPage.init();
+				mainPage.init();
+			} else if(event.data == ChangePageEvent.TO_DIFFCULTY_PAGE) {
+				difficultyPage.init();
 			} else if(event.data == ChangePageEvent.TO_GAME_PAGE) {
 //				if(firstFlag) {
 //					helpPage.toPage = ChangePageEvent.TO_GAME_PAGE;
