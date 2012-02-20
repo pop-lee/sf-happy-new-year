@@ -8,11 +8,13 @@ package cn.sftech.www.events
 		
 		public static const TO_MAIN_PAGE : int = 0;
 		
-		public static const TO_GAME_PAGE : int = 1;
+		public static const TO_DIFFCULTY_PAGE : int = 1;
 		
-		public static const TO_HELP_PAGE : int = 2;
+		public static const TO_GAME_PAGE : int = 2;
 		
-		public static const EXIT : int = 3;
+		public static const TO_HELP_PAGE : int = 3;
+		
+		public static const EXIT : int = 4;
 		
 		public var data : int;
 		

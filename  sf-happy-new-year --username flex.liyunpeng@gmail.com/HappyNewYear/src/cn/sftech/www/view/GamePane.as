@@ -126,6 +126,15 @@ package cn.sftech.www.view
 		private var currentCrackerIndex : uint = Math.ceil((ROW_COUNT-1)/2);
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
+		//------------Score comp------------
+		/**
+		 * 记录单词收集的硬币数
+		 */		
+		private var colletCoinCount : uint = 0;
+		/**
+		 * 临时记录分数
+		 */		
+		private var tempScore : uint = 0;
 		
 		////////////////////
 		private var mapData : Array = [
@@ -207,8 +216,6 @@ package cn.sftech.www.view
 		 */		
 		private function initData() : void
 		{
-			_model.currentGameMode = 2;
-			_model.currentDifficultyMode = 1;
 			
 			leadArr = new Vector.<Vector.<Lead>>(ROW_COUNT);
 			for(var i : int = 0;i < leadArr.length;i++) {
@@ -283,7 +290,7 @@ package cn.sftech.www.view
 		private function initMode() : void
 		{
 			switch(_model.currentGameMode) {
-				case 1:{
+				case GameConfig.NORAML_MODEL:{
 					switch(_model.currentDifficultyMode) {
 						case GameConfig.EASY_TYPE:{gameTimerLine = 100};break;
 						case GameConfig.NORMAL_TYPE:{gameTimerLine = 90};break;
@@ -294,7 +301,7 @@ package cn.sftech.www.view
 					gameTimer.start();
 					maskPane.propsIcon = _model.currentGameMode;
 				};break;
-				case 2: {
+				case GameConfig.STRATEGY_MODEL: {
 					lightBox.process = 1;
 					matchesCount = 10;
 					maskPane.propsIcon = _model.currentGameMode;
@@ -422,7 +429,7 @@ package cn.sftech.www.view
 				case 8:{createCoin(4,5)};break;
 				case 9:{createCoin(4,6)};break;
 			}
-			if(_model.currentGameMode == 2) {
+			if(_model.currentGameMode == GameConfig.STRATEGY_MODEL) {
 				createMatches(this.batterCount-2);
 			}
 			this.batterCount = 0;
@@ -737,7 +744,7 @@ package cn.sftech.www.view
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
 			
-			if(_model.currentGameMode == 2) {
+			if(_model.currentGameMode == GameConfig.STRATEGY_MODEL) {
 				matchesCount --;
 				maskPane.propsCount = matchesCount;
 			}
@@ -805,6 +812,7 @@ package cn.sftech.www.view
 					if(lead.coin) { //如果当前导火索上有金币
 						maskPane.moneyScore += lead.coin.coinScore;
 						maskPane.colletCoin(lead);
+						colletCoinCount ++;
 					}
 					if(lead.matches) { //如果当前导火索上有火柴
 						matchesCount ++;
@@ -908,6 +916,7 @@ package cn.sftech.www.view
 					if(fire) {
 						if(nextIndexX >= COL_COUNT) {  //燃烧到导火线尾部
 							crackerArr[arrIndexY].kindleCracker();
+							tempScore += crackerArr[arrIndexY].type*GameConfig.CRACKER_SCORE;
 							batterCount ++;
 						}
 						
@@ -938,6 +947,7 @@ package cn.sftech.www.view
 				if(toDelArr.length == 0) {
 					test();
 					createLeadMap();
+					maskPane.gameScore += tempScore * colletCoinCount;
 					
 					kindleFireworks(batterCount);
 				}
