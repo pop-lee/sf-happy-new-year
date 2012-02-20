@@ -6,16 +6,35 @@ package cn.sftech.www.model
 	public class ModelLocator
 	{
 		private static var _model : ModelLocator = new ModelLocator();
-		
-		public var correntMoneyScore : uint = 2000;
-		
+		/**
+		 * 当前的钱数
+		 */		
+		public var correntMoneyScore : uint = 10;
+		/**
+		 * 游戏分数
+		 */		
 		public var gameScore : uint = 0;
-		
+		/**
+		 * 道具数量
+		 */		
 		public var propsCount : uint = 0;
-		
+		/**
+		 * 游戏模式
+		 * 1为经典模式
+		 * 2为策略模式
+		 */		
 		public var currentGameMode : uint = 0;
-		
+		/**
+		 * 难度模式
+		 * 1为简单
+		 * 2为中等
+		 * 3为困难
+		 */		
 		public var currentDifficultyMode : uint = 0;
+		/**
+		 * 是否显示帮助提示
+		 */		
+		public var showHelp : Boolean = false;
 		//=================================
 //		
 //		/**

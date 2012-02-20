@@ -947,7 +947,8 @@ package cn.sftech.www.view
 				if(toDelArr.length == 0) {
 					test();
 					createLeadMap();
-					maskPane.gameScore += tempScore * colletCoinCount;
+					
+					maskPane.gameScore += tempScore * (colletCoinCount<1?1:colletCoinCount);
 					
 					kindleFireworks(batterCount);
 				}
