@@ -28,14 +28,16 @@ package cn.sftech.www.view
 		private var pillarPane : MovieClip;
 		
 		private var leadPane : SFContainer;
-		
+		//盖子
 		private var coverPane : CoverPane;
 		
 		private var maskPane : MaskPane;
 		
 		private var lightBox : LightBox;
 		
-		public var firePane : SFContainer;
+		private var firePane : SFContainer;
+		
+		private var helpPage : MovieClip;
 		
 		private const BASE_X : uint = 40;
 		
@@ -103,7 +105,7 @@ package cn.sftech.www.view
 		/**
 		 * 准备点火倒计时
 		 */		
-		private var fireTimer : Timer = new Timer(1000,1);
+		private var fireTimer : Timer = new Timer(500,1);
 		/**
 		 * 创建金币计时器
 		 */		
@@ -126,6 +128,10 @@ package cn.sftech.www.view
 		private var currentCrackerIndex : uint = Math.ceil((ROW_COUNT-1)/2);
 		
 		private var rotationEffect : SFEffectBase = new SFEffectBase();
+		/**
+		 * 游戏帮助到第几步索引
+		 */		
+		private var gameHelpIndex : uint = 1;
 		//------------Score comp------------
 		/**
 		 * 记录单词收集的硬币数
@@ -138,16 +144,6 @@ package cn.sftech.www.view
 		
 		////////////////////
 		private var mapData : Array = [
-//				[1,1,2,2,2,2],
-//				[3,1,1,1,2,1],
-//				[2,2,2,4,1,2],
-//				[1,1,1,1,1,1],
-//				[2,2,2,1,3,2],
-//				[4,4,1,2,1,2],
-//				[1,1,2,1,2,2],
-//				[2,1,2,1,2,3],
-//				[1,3,1,1,2,1]
-			
 //				[3,1,1,1,1,1],
 //				[3,1,1,1,2,1],
 //				[2,2,2,4,1,2],
@@ -158,13 +154,13 @@ package cn.sftech.www.view
 //				[2,1,2,1,2,3],
 //				[1,3,1,1,2,1]
 				
-				[3,1,1,1,1,1],
-				[3,1,1,1,2,1],
-				[2,2,2,4,1,2],
+				[4,1,4,2,2,1],
+				[1,2,1,4,3,1],
+				[1,1,1,1,2,1],
+				[1,1,2,1,2,1],
+				[2,2,2,2,1,1],
 				[1,1,1,1,1,2],
-				[2,2,2,1,3,2],
-				[4,4,1,2,1,2],
-				[1,1,2,1,2,2],
+				[1,1,1,1,2,2],
 				[2,1,2,1,2,3],
 				[1,3,1,1,2,1]
 			];
@@ -172,24 +168,23 @@ package cn.sftech.www.view
 		private var leadAngleArr : Array = [
 //				[1,1,1,1,1,1],
 //				[1,1,1,1,1,1],
-//				[4,1,1,1,1,1],
-//				[1,1,1,1,1,1],
-//				[1,1,1,1,1,1],
-//				[1,1,1,1,1,1],
-//				[1,1,1,1,1,1],
-//				[1,1,1,1,1,1],
+//				[3,1,4,1,2,1],
+//				[1,2,2,2,2,1],
+//				[1,3,2,2,1,1],
+//				[1,1,1,3,2,3],
+//				[1,1,4,1,2,1],
+//				[3,1,2,1,1,1],
 //				[1,1,1,1,1,1]
 				
-				[1,1,1,1,1,1],
-				[1,1,1,1,1,1],
-				[3,1,4,1,2,1],
-				[1,2,2,2,2,1],
-				[1,3,2,2,1,1],
-				[1,1,1,3,2,3],
-				[1,1,4,1,2,1],
-				[3,1,2,1,1,1],
-				[1,1,1,1,1,1]
-				
+				[3,4,3,1,2,2],
+				[3,1,3,3,1,2],
+				[3,3,3,1,1,1],
+				[3,2,3,2,1,1],
+				[4,1,4,1,1,2],
+				[3,2,4,2,2,1],
+				[3,1,4,3,1,4],
+				[3,1,2,1,3,4],
+				[3,4,1,1,2,1]
 			];
 		
 		public function GamePane()
@@ -234,6 +229,7 @@ package cn.sftech.www.view
 		private function initUI() : void
 		{
 			fireworksPane = new FireworksPane();
+			fireworksPane.mouseEnabled = false;
 			
 			pillarPane = new PillarPane();
 			
@@ -251,6 +247,7 @@ package cn.sftech.www.view
 			firePane.backgroundAlpha = 0;
 			
 			maskPane = new MaskPane();
+			maskPane.mouseEnabled = false;
 			maskPane.moneyScore = _model.correntMoneyScore;
 			maskPane.gameScore = _model.gameScore;
 			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
@@ -585,6 +582,8 @@ package cn.sftech.www.view
 		 */		
 		private function clickLeadHandle(event : MouseEvent) : void
 		{
+			hideHelp();
+			
 			if(isFiring||isCreating||isPausing) return;
 			
 			if(this.mouseX < BASE_X+Lead.LEAD_SIZE || this.mouseX > BASE_X + (Lead.LEAD_SIZE*COL_COUNT-2) ||
@@ -688,6 +687,8 @@ package cn.sftech.www.view
 				fireTimer.reset();
 				fireTimer.start();
 			}
+			
+			showHelp();
 		}
 		
 		/**
@@ -744,7 +745,8 @@ package cn.sftech.www.view
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
 			
-			if(_model.currentGameMode == GameConfig.STRATEGY_MODEL) {
+			//当前模式为策略模式  并且不属于连续消除的情况下，消耗一根火柴
+			if(_model.currentGameMode == GameConfig.STRATEGY_MODEL && this.batterCount == 0) { 
 				matchesCount --;
 				maskPane.propsCount = matchesCount;
 			}
@@ -978,6 +980,63 @@ package cn.sftech.www.view
 		private function gameOver() : void
 		{
 			
+		}
+		
+		private function showHelp() : void
+		{
+			if(_model.showHelp) {
+				gameTimer.stop();
+				switch(gameHelpIndex) {
+					case 1:{
+						helpPage = new Help1();
+						maskPane.addChild(helpPage);
+					};break;
+					case 2:{
+						helpPage = new Help2();
+						maskPane.addChild(helpPage);
+					};break;
+					case 3:{
+						helpPage = new Help3();
+						maskPane.addChild(helpPage);
+					};break;
+					case 4:{
+						if(_model.currentGameMode == 1) {
+							helpPage = new Help4();
+							maskPane.addChild(helpPage);
+						} else {
+							helpPage = new Help7();
+							maskPane.addChild(helpPage);
+						}
+					};break;
+					case 5:{
+						helpPage = new Help5();
+						maskPane.addChild(helpPage);
+					};break;
+					case 6:{
+						helpPage = new Help6();
+						maskPane.addChild(helpPage);
+					};break;
+					default:{
+						closeHelp();
+					}break;
+				}
+				
+				gameHelpIndex++;
+			}
+		}
+		
+		private function closeHelp() : void
+		{
+			_model.showHelp = false;
+			gameTimer.start();
+		}
+		
+		private function hideHelp(event : MouseEvent = null) : void
+		{
+			if(helpPage) {
+				maskPane.removeChild(helpPage);
+				helpPage = null;
+			}
 		}
 		
 		/*
