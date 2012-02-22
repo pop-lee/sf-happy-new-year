@@ -9,7 +9,7 @@ package cn.sftech.www.model
 		/**
 		 * 当前的钱数
 		 */		
-		public var correntMoneyScore : uint = 10;
+		public var correntMoneyScore : uint = 5;
 		/**
 		 * 游戏分数
 		 */		

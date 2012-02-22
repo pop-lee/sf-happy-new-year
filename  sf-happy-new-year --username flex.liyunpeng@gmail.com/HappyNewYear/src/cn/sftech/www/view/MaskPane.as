@@ -25,6 +25,8 @@ package cn.sftech.www.view
 		
 		private var _gameScore : int;
 		
+		private var _levelGoals : int;
+		
 		private var bottomPane : BottomPane;
 		
 		private var topPane : TopPane;
@@ -61,6 +63,7 @@ package cn.sftech.www.view
 		
 		public function set propsCount(value : int) : void
 		{
+			if(value < 0) return;
 			_propsCount = value;
 			topPane.propsCount.text = value.toString();
 		}
@@ -81,7 +84,7 @@ package cn.sftech.www.view
 			return _gameScore;
 		}
 		
-		public function set propsIcon(modelValue : uint) : void
+		public function set propsIcon(modelValue : int) : void
 		{
 			topPane.propsIcon.gotoAndStop(modelValue);
 		}

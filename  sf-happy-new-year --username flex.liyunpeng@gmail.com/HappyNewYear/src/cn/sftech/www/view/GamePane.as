@@ -85,7 +85,7 @@ package cn.sftech.www.view
 		/**
 		 * 要删除的导火线
 		 */		
-		private var toDelArr : Vector.<Lead>;
+		private var toDelArr : Vector.<Lead> = new Vector.<Lead>();
 		/**
 		 * 当前颜色标记
 		 */		
@@ -143,49 +143,9 @@ package cn.sftech.www.view
 		private var tempScore : uint = 0;
 		
 		////////////////////
-		private var mapData : Array = [
-//				[3,1,1,1,1,1],
-//				[3,1,1,1,2,1],
-//				[2,2,2,4,1,2],
-//				[1,1,1,1,1,2],
-//				[2,2,2,1,3,2],
-//				[4,4,1,2,1,2],
-//				[1,1,2,1,2,2],
-//				[2,1,2,1,2,3],
-//				[1,3,1,1,2,1]
-				
-				[4,1,4,2,2,1],
-				[1,2,1,4,3,1],
-				[1,1,1,1,2,1],
-				[1,1,2,1,2,1],
-				[2,2,2,2,1,1],
-				[1,1,1,1,1,2],
-				[1,1,1,1,2,2],
-				[2,1,2,1,2,3],
-				[1,3,1,1,2,1]
-			];
+		private var mapData : Array;
 		
-		private var leadAngleArr : Array = [
-//				[1,1,1,1,1,1],
-//				[1,1,1,1,1,1],
-//				[3,1,4,1,2,1],
-//				[1,2,2,2,2,1],
-//				[1,3,2,2,1,1],
-//				[1,1,1,3,2,3],
-//				[1,1,4,1,2,1],
-//				[3,1,2,1,1,1],
-//				[1,1,1,1,1,1]
-				
-				[3,4,3,1,2,2],
-				[3,1,3,3,1,2],
-				[3,3,3,1,1,1],
-				[3,2,3,2,1,1],
-				[4,1,4,1,1,2],
-				[3,2,4,2,2,1],
-				[3,1,4,3,1,4],
-				[3,1,2,1,3,4],
-				[3,4,1,1,2,1]
-			];
+		private var leadAngleArr : Array;
 		
 		public function GamePane()
 		{
@@ -200,10 +160,10 @@ package cn.sftech.www.view
 			this.backgroundAlpha = 0;
 			this.backgroundImage = gamePaneBackground;
 			initData();
+			initMode();
 			initUI();
 			initEvent();
 			
-			initMode();
 		}
 		
 		/**
@@ -229,6 +189,7 @@ package cn.sftech.www.view
 		private function initUI() : void
 		{
 			fireworksPane = new FireworksPane();
+			fireworksPane.mouseChildren = false;
 			fireworksPane.mouseEnabled = false;
 			
 			pillarPane = new PillarPane();
@@ -251,6 +212,14 @@ package cn.sftech.www.view
 			maskPane.moneyScore = _model.correntMoneyScore;
 			maskPane.gameScore = _model.gameScore;
 			maskPane.boxBtn.addEventListener(MouseEvent.CLICK,buyCracker);
+			if(_model.currentGameMode == 1) {
+				maskPane.propsCount = 10;
+				maskPane.propsIcon = _model.currentGameMode;
+			} else {
+				maskPane.propsIcon = _model.currentGameMode;
+				maskPane.propsCount = matchesCount;
+			}
+			
 //			coinPane.mouseEnabled = false;
 			lightBox = new LightBox();
 			lightBox.x = 29;
@@ -288,27 +257,35 @@ package cn.sftech.www.view
 		{
 			switch(_model.currentGameMode) {
 				case GameConfig.NORAML_MODEL:{
+					mapData = (new GameConfig()).mapDataRes[0];
+					leadAngleArr = (new GameConfig()).leadAngleArrRes[0];
+					
 					switch(_model.currentDifficultyMode) {
 						case GameConfig.EASY_TYPE:{gameTimerLine = 100};break;
 						case GameConfig.NORMAL_TYPE:{gameTimerLine = 90};break;
 						case GameConfig.HARD_TYPE:{gameTimerLine = 80};break;
 					}
+					
 					gameTimer = new Timer(1000);
 					gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
 					gameTimer.start();
-					maskPane.propsIcon = _model.currentGameMode;
+//					maskPane.propsCount = 10;
+//					maskPane.propsIcon = _model.currentGameMode;
 				};break;
 				case GameConfig.STRATEGY_MODEL: {
+					mapData = (new GameConfig()).mapDataRes[1];
+					leadAngleArr = (new GameConfig()).leadAngleArrRes[1];
+					
 					lightBox.process = 1;
 					matchesCount = 10;
-					maskPane.propsIcon = _model.currentGameMode;
 					switch(_model.currentDifficultyMode) {
 						case GameConfig.EASY_TYPE:{matchesCount = 10};break;
 						case GameConfig.NORMAL_TYPE:{matchesCount = 8};break;
 						case GameConfig.HARD_TYPE:{matchesCount = 6};break;
 					}
 					
-					maskPane.propsCount = matchesCount;
+//					maskPane.propsIcon = _model.currentGameMode;
+//					maskPane.propsCount = matchesCount;
 				};break;
 			}
 		}
@@ -490,11 +467,18 @@ package cn.sftech.www.view
 					if(lead.indexY == 0) { 
 						createBatchCount++;
 						if(createBatchCount == COL_COUNT-2) { //全部创建完
+							if(_model.currentGameMode == 1) {
+								if(maskPane.propsCount == 0) {
+									nextLevel();
+								}
+							}
+							
 							isCreating = false;
 							createCoinTimer.reset();
 							createCoinTimer.start();
 							createBatchCount = 0;
 							checkGame();
+							showHelp();
 						}
 					}
 				});
@@ -687,8 +671,6 @@ package cn.sftech.www.view
 				fireTimer.reset();
 				fireTimer.start();
 			}
-			
-			showHelp();
 		}
 		
 		/**
@@ -823,6 +805,11 @@ package cn.sftech.www.view
 					}
 					
 					firedCount++;
+					if(_model.currentGameMode == 1) {
+						if(arrIndexX == COL_COUNT-1) {
+							maskPane.propsCount --;
+						}
+					}
 					
 //					kindelLead(lead);
 				} else {
@@ -888,10 +875,6 @@ package cn.sftech.www.view
 		 */	
 		private function deepFind(arrIndexX : int,arrIndexY : int,index : int,fire : Fire = null) : void
 		{
-			if(arrIndexX == 5 && arrIndexY == 5) {
-				trace("a");
-			}
-			
 			var lead : Lead = leadArr[arrIndexY][arrIndexX];
 			
 			if(lead.exportArr[index]) {
@@ -910,7 +893,6 @@ package cn.sftech.www.view
 					if(oppIndex > lead.exportArr.length-1) {
 						oppIndex -= lead.exportArr.length;
 					}
-					
 					changeColor(nextIndexX,nextIndexY,oppIndex,fire);
 //					trace(nextIndexX + "      " + nextIndexY + "      " + index);
 				} else {
@@ -926,6 +908,7 @@ package cn.sftech.www.view
 						fire = null;
 					}
 				}
+				
 			} else {
 				if(fire) {
 					firePane.removeChild(fire);
@@ -939,8 +922,7 @@ package cn.sftech.www.view
 				while(toDelArr.length>0) { //把以点燃的导火线删除
 					var toDelLead : Lead = toDelArr[0];
 					if(toDelLead.indexX>0 && toDelLead.indexX < COL_COUNT-1) {
-						leadPane.removeChild(toDelLead);
-						leadArr[toDelLead.indexY][toDelLead.indexX] = null;
+						removeLead(toDelLead);
 					}
 					toDelArr.splice(0,1);
 					
@@ -966,14 +948,6 @@ package cn.sftech.www.view
 			}
 		}
 		/**
-		 * 检测游戏通过
-		 * 
-		 */		
-		private function checkSuccess() : void
-		{
-			
-		}
-		/**
 		 * 游戏结束方法
 		 * 
 		 */		
@@ -981,19 +955,60 @@ package cn.sftech.www.view
 		{
 			
 		}
+		/**
+		 * 下一关
+		 */		
+		private function nextLevel() : void
+		{
+			maskPane.propsCount ++;
+			
+			for(var i : int = 0;i < ROW_COUNT;i++) {
+				for(var j : int = 1;j < COL_COUNT-1;j++) {
+					trace(j + "???" + i);
+					removeLead(leadArr[i][j]);
+				}
+			}
+			
+			createLeadMap();
+		}
 		
+		private function removeLead(lead : Lead) : void
+		{
+			leadPane.removeChild(lead);
+			leadArr[lead.indexY][lead.indexX] = null;
+		}
+		/**
+		 * 显示帮助
+		 * 
+		 */		
 		private function showHelp() : void
 		{
+			if(helpPage) return;
+			
 			if(_model.showHelp) {
-				gameTimer.stop();
+				if(gameTimer) {
+					gameTimer.stop();
+				}
 				switch(gameHelpIndex) {
 					case 1:{
 						helpPage = new Help1();
 						maskPane.addChild(helpPage);
 					};break;
 					case 2:{
-						helpPage = new Help2();
-						maskPane.addChild(helpPage);
+						if(_model.currentGameMode == 1) {
+							var coin : Coin = new Coin();
+							coin.type = 1;
+							leadArr[7][4].coin = coin;
+							
+							helpPage = new Help2();
+							maskPane.addChild(helpPage);
+						} else {
+							var matches : Matches = new Matches();
+							leadArr[7][4].matches = matches;
+							
+							helpPage = new Help7();
+							maskPane.addChild(helpPage);
+						}
 					};break;
 					case 3:{
 						helpPage = new Help3();
@@ -1003,9 +1018,6 @@ package cn.sftech.www.view
 						if(_model.currentGameMode == 1) {
 							helpPage = new Help4();
 							maskPane.addChild(helpPage);
-						} else {
-							helpPage = new Help7();
-							maskPane.addChild(helpPage);
 						}
 					};break;
 					case 5:{
@@ -1013,8 +1025,13 @@ package cn.sftech.www.view
 						maskPane.addChild(helpPage);
 					};break;
 					case 6:{
-						helpPage = new Help6();
-						maskPane.addChild(helpPage);
+						if(_model.currentGameMode == 1) {
+							helpPage = new Help6();
+							maskPane.addChild(helpPage);
+						} else {
+							helpPage = new Help8();
+							maskPane.addChild(helpPage);
+						}
 					};break;
 					default:{
 						closeHelp();
