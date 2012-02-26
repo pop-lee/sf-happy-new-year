@@ -2,6 +2,8 @@ package cn.sftech.www.view
 {
 	import cn.sftech.www.effect.SFMoveEffect;
 	import cn.sftech.www.effect.base.SFEffectBase;
+	import cn.sftech.www.events.ChangePageEvent;
+	import cn.sftech.www.events.CloseTipEvent;
 	import cn.sftech.www.events.KindleEndEvent;
 	import cn.sftech.www.model.GameConfig;
 	import cn.sftech.www.model.ModelLocator;
@@ -14,6 +16,7 @@ package cn.sftech.www.view
 	
 	import com.greensock.easing.Quart;
 	
+	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
@@ -32,6 +35,12 @@ package cn.sftech.www.view
 		private var coverPane : CoverPane;
 		
 		private var maskPane : MaskPane;
+		
+		private var pauseGamePage : PausePage;
+		
+		private var backBtn : BackBtn;
+		
+		private var pauseBtn : PauseBtn;
 		
 		private var lightBox : LightBox;
 		
@@ -103,6 +112,10 @@ package cn.sftech.www.view
 		 */		
 		private var isPausing : Boolean = false;
 		/**
+		 * 游戏是否结束
+		 */		
+		private var isGameOver : Boolean = false;
+		/**
 		 * 准备点火倒计时
 		 */		
 		private var fireTimer : Timer = new Timer(500,1);
@@ -131,7 +144,7 @@ package cn.sftech.www.view
 		/**
 		 * 游戏帮助到第几步索引
 		 */		
-		private var gameHelpIndex : uint = 1;
+		private var gameHelpIndex : uint = 0;
 		//------------Score comp------------
 		/**
 		 * 记录单词收集的硬币数
@@ -224,7 +237,17 @@ package cn.sftech.www.view
 			lightBox = new LightBox();
 			lightBox.x = 29;
 			lightBox.y = 245;
+			lightBox.process = _model.currentGameMode==1?0:1;
 			maskPane.addChild(lightBox);
+			
+			backBtn = new BackBtn();
+			backBtn.x = 0;
+			backBtn.y = 761;
+			backBtn.addEventListener(MouseEvent.CLICK,leave);
+			pauseBtn = new PauseBtn();
+			pauseBtn.x = 405;
+			pauseBtn.y = 761;
+			pauseBtn.addEventListener(MouseEvent.CLICK,pauseGame);
 			
 			this.addChild(pillarPane);
 			this.addChild(leadPane);
@@ -232,6 +255,9 @@ package cn.sftech.www.view
 			this.addChild(firePane);
 			this.addChild(maskPane);
 			this.addChild(fireworksPane);
+			
+			this.addChild(backBtn);
+			this.addChild(pauseBtn);
 			createEntrance();
 			createExport();
 			createCracker();
@@ -245,7 +271,7 @@ package cn.sftech.www.view
 		 */		
 		private function initEvent() : void
 		{
-			this.addEventListener(MouseEvent.CLICK,clickLeadHandle);
+			this.addEventListener(MouseEvent.MOUSE_DOWN,clickLeadHandle);
 			fireTimer.addEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
 			createCoinTimer.addEventListener(TimerEvent.TIMER_COMPLETE,createCoinAndMatchesHandle);
 		}
@@ -276,7 +302,6 @@ package cn.sftech.www.view
 					mapData = (new GameConfig()).mapDataRes[1];
 					leadAngleArr = (new GameConfig()).leadAngleArrRes[1];
 					
-					lightBox.process = 1;
 					matchesCount = 10;
 					switch(_model.currentDifficultyMode) {
 						case GameConfig.EASY_TYPE:{matchesCount = 10};break;
@@ -454,6 +479,7 @@ package cn.sftech.www.view
 		 */		
 		private function createLeadEffect(lead : Lead) : void
 		{
+			if(isGameOver) return;
 //			lead.x = BASE_X + Lead.LEAD_SIZE*indexX;
 //			lead.y = BASE_Y + Lead.LEAD_SIZE*indexY;
 			
@@ -568,7 +594,7 @@ package cn.sftech.www.view
 		{
 			hideHelp();
 			
-			if(isFiring||isCreating||isPausing) return;
+			if(isFiring||isCreating||isPausing||isGameOver) return;
 			
 			if(this.mouseX < BASE_X+Lead.LEAD_SIZE || this.mouseX > BASE_X + (Lead.LEAD_SIZE*COL_COUNT-2) ||
 				this.mouseY < BASE_Y || this.mouseY > BASE_Y + Lead.LEAD_SIZE*ROW_COUNT) {
@@ -925,16 +951,15 @@ package cn.sftech.www.view
 						removeLead(toDelLead);
 					}
 					toDelArr.splice(0,1);
-					
 				}
 				
 				if(toDelArr.length == 0) {
 					test();
+					kindleFireworks(fireExportLeadArr.length);
+					
 					createLeadMap();
 					
 					maskPane.gameScore += tempScore * (colletCoinCount<1?1:colletCoinCount);
-					
-					kindleFireworks(batterCount);
 				}
 				//						}
 			}
@@ -956,11 +981,32 @@ package cn.sftech.www.view
 			
 		}
 		/**
+		 * 暂停游戏
+		 * @param event
+		 * 
+		 */		
+		private function pauseGame(event : MouseEvent) : void
+		{
+			isPausing = true;
+			pauseGamePage = new PausePage();
+			pauseGamePage.addEventListener(CloseTipEvent.CLOSE_TIP_EVENT,resumeGame);
+			this.addChild(pauseGamePage);
+		}
+		/**
+		 * 回到游戏
+		 * 
+		 */		
+		private function resumeGame(event : CloseTipEvent) : void
+		{
+			this.removeChild(pauseGamePage);
+			pauseGamePage = null;
+		}
+		/**
 		 * 下一关
 		 */		
 		private function nextLevel() : void
 		{
-			maskPane.propsCount ++;
+			maskPane.propsCount = 9 + _model.currentLv;
 			
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				for(var j : int = 1;j < COL_COUNT-1;j++) {
@@ -970,6 +1016,35 @@ package cn.sftech.www.view
 			}
 			
 			createLeadMap();
+		}
+		
+		private function leave(event : MouseEvent) : void
+		{
+			for(var i : int = 0;i < ROW_COUNT;i++) {
+				for(var j : int = 0;j < COL_COUNT;j++) {
+					removeLead(leadArr[i][j]);
+				}
+			}
+			this.removeEventListener(MouseEvent.MOUSE_DOWN,clickLeadHandle);
+			fireTimer.removeEventListener(TimerEvent.TIMER_COMPLETE,startKindle);
+			createCoinTimer.removeEventListener(TimerEvent.TIMER_COMPLETE,createCoinAndMatchesHandle);
+			maskPane.boxBtn.removeEventListener(MouseEvent.CLICK,buyCracker);
+			pauseBtn.removeEventListener(MouseEvent.CLICK,pauseGame);
+			backBtn.removeEventListener(MouseEvent.CLICK,leave);
+			
+			this.removeChild(pillarPane);
+			this.removeChild(leadPane);
+			this.removeChild(coverPane);
+			this.removeChild(firePane);
+			this.removeChild(maskPane);
+			this.removeChild(fireworksPane);
+			
+			this.removeChild(pauseBtn);
+			this.removeChild(backBtn);
+			
+			var changePageEvent : ChangePageEvent = new ChangePageEvent();
+			changePageEvent.data = ChangePageEvent.TO_MAIN_PAGE;
+			this.dispatchEvent(changePageEvent);
 		}
 		
 		private function removeLead(lead : Lead) : void
@@ -990,6 +1065,12 @@ package cn.sftech.www.view
 					gameTimer.stop();
 				}
 				switch(gameHelpIndex) {
+					case 0:{
+						isPausing = true;
+						var askShowHelp : AskShowHelpPage = new AskShowHelpPage();
+						askShowHelp.addEventListener(CloseTipEvent.CLOSE_TIP_EVENT,closeAsk);
+						maskPane.addChild(askShowHelp);
+					};break;
 					case 1:{
 						helpPage = new Help1();
 						maskPane.addChild(helpPage);
@@ -1042,10 +1123,19 @@ package cn.sftech.www.view
 			}
 		}
 		
+		private function closeAsk(event : CloseTipEvent) : void
+		{
+			isPausing = false;
+			maskPane.removeChild(event.target as DisplayObject);
+			showHelp();
+		}
+		
 		private function closeHelp() : void
 		{
 			_model.showHelp = false;
-			gameTimer.start();
+			if(_model.currentGameMode == 1) {
+				gameTimer.start();
+			}
 		}
 		
 		private function hideHelp(event : MouseEvent = null) : void
