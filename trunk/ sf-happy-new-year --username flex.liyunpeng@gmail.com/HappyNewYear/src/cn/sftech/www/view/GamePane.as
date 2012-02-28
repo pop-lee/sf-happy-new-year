@@ -4,6 +4,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.effect.base.SFEffectBase;
 	import cn.sftech.www.events.ChangePageEvent;
 	import cn.sftech.www.events.CloseTipEvent;
+	import cn.sftech.www.events.GameOverEvent;
 	import cn.sftech.www.events.KindleEndEvent;
 	import cn.sftech.www.model.GameConfig;
 	import cn.sftech.www.model.ModelLocator;
@@ -241,11 +242,11 @@ package cn.sftech.www.view
 			maskPane.addChild(lightBox);
 			
 			backBtn = new BackBtn();
-			backBtn.x = 0;
+			backBtn.x = 405;
 			backBtn.y = 761;
-			backBtn.addEventListener(MouseEvent.CLICK,leave);
+			backBtn.addEventListener(MouseEvent.CLICK,exitGame);
 			pauseBtn = new PauseBtn();
-			pauseBtn.x = 405;
+			pauseBtn.x = 0;
 			pauseBtn.y = 761;
 			pauseBtn.addEventListener(MouseEvent.CLICK,pauseGame);
 			
@@ -294,7 +295,7 @@ package cn.sftech.www.view
 					
 					gameTimer = new Timer(1000);
 					gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
-					gameTimer.start();
+//					gameTimer.start();
 //					maskPane.propsCount = 10;
 //					maskPane.propsIcon = _model.currentGameMode;
 				};break;
@@ -302,9 +303,8 @@ package cn.sftech.www.view
 					mapData = (new GameConfig()).mapDataRes[1];
 					leadAngleArr = (new GameConfig()).leadAngleArrRes[1];
 					
-					matchesCount = 10;
 					switch(_model.currentDifficultyMode) {
-						case GameConfig.EASY_TYPE:{matchesCount = 10};break;
+						case GameConfig.EASY_TYPE:{matchesCount = 1};break;
 						case GameConfig.NORMAL_TYPE:{matchesCount = 8};break;
 						case GameConfig.HARD_TYPE:{matchesCount = 6};break;
 					}
@@ -328,7 +328,7 @@ package cn.sftech.www.view
 		/**
 		 * 创建入口导火线
 		 * 
-		 */		
+		 */
 		private function createEntrance() : void
 		{
 			for(var i : int = 0;i < ROW_COUNT;i++) {
@@ -493,16 +493,22 @@ package cn.sftech.www.view
 					if(lead.indexY == 0) { 
 						createBatchCount++;
 						if(createBatchCount == COL_COUNT-2) { //全部创建完
-							if(_model.currentGameMode == 1) {
-								if(maskPane.propsCount == 0) {
-									nextLevel();
-								}
-							}
 							
 							isCreating = false;
 							createCoinTimer.reset();
 							createCoinTimer.start();
 							createBatchCount = 0;
+							
+							if(_model.currentGameMode == 1) {
+								if(maskPane.propsCount == 0) {
+									nextLevel();
+								}
+							} else {
+								if(matchesCount == 0) {
+									gameOver();
+									return;
+								}
+							}
 							checkGame();
 							showHelp();
 						}
@@ -978,8 +984,18 @@ package cn.sftech.www.view
 		 */		
 		private function gameOver() : void
 		{
+			this.removeEventListener(MouseEvent.MOUSE_DOWN,clickLeadHandle);
+			
+			var gameOverPage : GameOverPage = new GameOverPage();
+			gameOverPage.addEventListener(GameOverEvent.GAME_OVER_EVENT,gameEventHandle);
+			this.addChild(gameOverPage);
+		}
+		
+		private function gameEventHandle(event : GameOverEvent) : void
+		{
 			
 		}
+		
 		/**
 		 * 暂停游戏
 		 * @param event
@@ -991,6 +1007,15 @@ package cn.sftech.www.view
 			pauseGamePage = new PausePage();
 			pauseGamePage.addEventListener(CloseTipEvent.CLOSE_TIP_EVENT,resumeGame);
 			this.addChild(pauseGamePage);
+		}
+		/**
+		 * 退出游戏
+		 * @param event
+		 * 
+		 */		
+		private function exitGame(event : MouseEvent) : void
+		{
+			
 		}
 		/**
 		 * 回到游戏
@@ -1127,6 +1152,7 @@ package cn.sftech.www.view
 		{
 			isPausing = false;
 			maskPane.removeChild(event.target as DisplayObject);
+			closeHelp();
 			showHelp();
 		}
 		
