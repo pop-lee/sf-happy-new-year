@@ -1,117 +1,114 @@
 package cn.sftech.www.util
 {
 	import cn.sftech.www.event.SFInitializeDataEvent;
+	import cn.sftech.www.util.ByteArrayObjectTranslator;
 	import cn.sftech.www.view.SFApplication;
 	
-	import flash.errors.EOFError;
+	import com.qq.openapi.MttGameData;
+	import com.qq.openapi.MttScore;
+	import com.qq.openapi.MttService;
+	
 	import flash.events.Event;
 	import flash.utils.ByteArray;
 	
 	public class DataManager
 	{
-		private var loading : uint = 0;
-		
-		private var manageLock : Boolean = false;
+		private static var manageLock : Boolean = false;
 		
 		private static var isInitialized : Boolean = false;
 		
-		private static var manageFuncArr : Vector.<Function> = new Vector.<Function>();
+		private static var manageFuncArr : Vector.<Object> = new Vector.<Object>();
 		
-//		private var _model : ModelLocator = ModelLocator.getInstance();
+		private static const LEVEL_DATA : String = "levelData";
 		
 		public function DataManager()
 		{
 		}
 		
-		public function initData() : void
+		public static function init(root : Object) : void
 		{
-			queryScore();
+			MttService.initialize(root, "D5FE393C02DB836FFDE413B8794056ED","1052");
+			MttService.addEventListener(MttService.ETLOGOUT, 
+				function onLogout(event : Event) : void
+				{
+					MttService.login();
+				}
+			);
 		}
 		
+		public static function initData() : void
+		{
+			var dm : DataManager = new DataManager
+			actionFunction(dm.initFinished);
+		}
+		
+		public static function saveScore(score : Number) : void
+		{
+			var dm : DataManager = new DataManager();
+			actionFunction(dm.saveScoreHandle,score);
+		}
+		
+		private function saveScoreHandle(score : Number) : void
+		{
+			MttScore.submit(score,submitScoreResult);
+		}
+		private function submitScoreResult(result : Object) : void
+		{
+			outList();
+			if(result.code == 0) {
+				trace("success");
+			} else {
+				trace(result.code);
+			}
+		}
+		
+		//------------------------------------------------
+		
+		public static function actionFunction(func : Function, ...parameters) : void
+		{
+			if(manageLock) {
+				manageFuncArr.push({func:func,param:parameters});
+			} else {
+				manageLock = true;
+				
+				func.apply(null,parameters);
+			}
+		}
+		
+		private function outList() : void
+		{
+//			if(!isInitialized) {
+//				//				loading = loading>=100?100:loading += 10;
+//				//				LogManager.print("正在加载用户数据..." + loading + " %");
+//				
+//				if(manageFuncArr.length == 0) {
+//					//					loading = 100;
+//					//					LogManager.print("正在加载用户数据..." + loading + " %");
+//					initFinished();
+//				}
+//			}
+			
+			manageLock = false;
+			if(manageFuncArr.length == 0) return;
+			
+			var func : Function = manageFuncArr[0].func;
+			var param : Array = manageFuncArr[0].param;
+			manageFuncArr.splice(0,1);
+			if(manageFuncArr.length>=0) {
+				actionFunction(func,param);
+			}
+		}
 		
 		private function initFinished() : void
 		{
 			isInitialized = true;
 			//			LogManager.print("初始化成功");
 			
-			manageLock = true;
+			manageLock = false;
 			
 			SFApplication.application.dispatchEvent(new SFInitializeDataEvent());
-			LogManager.hideLog();
+			//			LogManager.hideLog();
 			
-		}
-		
-		public function queryScore() : void
-		{
-			if(manageLock) {
-				inList(queryScore);
-			} else {
-				manageLock = true;
-				
-//				MttScore.query(queryScoreResult);
-			}
-		}
-		
-		public function saveScore() : void
-		{
-			if(manageLock) {
-				inList(saveScore);
-			} else {
-				manageLock = true;
-				
-//				MttScore.submit(_model.currentScore,submitScoreResult);
-			}
-		}
-		
-		private function queryScoreResult(result : Object) : void
-		{
-			if(result.code == 0) { // 保存成功
-//				_model.currentMaxScore = result.score.score;
-				outList();
-			} else {
-				outList();
-				trace(result.code + "     保存失败");
-			}
-		}
-		
-		private function submitScoreResult(result : Object) : void
-		{
-			if(result.code == 0) { // 保存成功
-				outList();
-			} else {
-				outList();
-				trace(result.code + "     保存失败");
-			}
-		}
-		
-		//---------------------------------------------------------------------------------------------
-		
-		private function inList(func : Function) : void
-		{
-			manageFuncArr.push(func);
-		}
-		
-		private function outList() : void
-		{
-			if(!isInitialized) {
-				//				loading = loading>=100?100:loading += 10;
-				//				LogManager.print("正在加载用户数据..." + loading + " %");
-				
-				if(manageFuncArr.length == 0) {
-					//					loading = 100;
-					//					LogManager.print("正在加载用户数据..." + loading + " %");
-					initFinished();
-				}
-			}
-			
-			manageLock = false;
-			if(manageFuncArr.length == 0) return;
-			
-			var func : Function = manageFuncArr[0];
-			manageFuncArr.splice(0,1);
-			if(manageFuncArr.length>=0) {
-				func.call();
-			}
 		}
 	}
 }

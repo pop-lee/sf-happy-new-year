@@ -13,6 +13,7 @@ package cn.sftech.www.view
 	import cn.sftech.www.object.Fire;
 	import cn.sftech.www.object.Lead;
 	import cn.sftech.www.object.Matches;
+	import cn.sftech.www.util.DataManager;
 	import cn.sftech.www.util.MathUtil;
 	
 	import com.greensock.easing.Quart;
@@ -39,7 +40,9 @@ package cn.sftech.www.view
 		
 		private var pauseGamePage : PausePage;
 		
-		private var backBtn : BackBtn;
+		private var gameOverPage : GameOverPage;
+		
+		private var exitBtn : SExitBtn;
 		
 		private var pauseBtn : PauseBtn;
 		
@@ -241,10 +244,10 @@ package cn.sftech.www.view
 			lightBox.process = _model.currentGameMode==1?0:1;
 			maskPane.addChild(lightBox);
 			
-			backBtn = new BackBtn();
-			backBtn.x = 405;
-			backBtn.y = 761;
-			backBtn.addEventListener(MouseEvent.CLICK,exitGame);
+			exitBtn = new SExitBtn();
+			exitBtn.x = 405;
+			exitBtn.y = 761;
+			exitBtn.addEventListener(MouseEvent.CLICK,exitGame);
 			pauseBtn = new PauseBtn();
 			pauseBtn.x = 0;
 			pauseBtn.y = 761;
@@ -257,7 +260,7 @@ package cn.sftech.www.view
 			this.addChild(maskPane);
 			this.addChild(fireworksPane);
 			
-			this.addChild(backBtn);
+			this.addChild(exitBtn);
 			this.addChild(pauseBtn);
 			createEntrance();
 			createExport();
@@ -288,13 +291,18 @@ package cn.sftech.www.view
 					leadAngleArr = (new GameConfig()).leadAngleArrRes[0];
 					
 					switch(_model.currentDifficultyMode) {
-						case GameConfig.EASY_TYPE:{gameTimerLine = 100};break;
+						case GameConfig.EASY_TYPE:{gameTimerLine = 20};break;
 						case GameConfig.NORMAL_TYPE:{gameTimerLine = 90};break;
 						case GameConfig.HARD_TYPE:{gameTimerLine = 80};break;
 					}
 					
-					gameTimer = new Timer(1000);
-					gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
+					if(gameTimer) {
+						gameTimer.reset();
+						lightBox.process = 0;
+					} else {
+						gameTimer = new Timer(1000);
+						gameTimer.addEventListener(TimerEvent.TIMER,gameTimerHandle);
+					}
 //					gameTimer.start();
 //					maskPane.propsCount = 10;
 //					maskPane.propsIcon = _model.currentGameMode;
@@ -304,7 +312,7 @@ package cn.sftech.www.view
 					leadAngleArr = (new GameConfig()).leadAngleArrRes[1];
 					
 					switch(_model.currentDifficultyMode) {
-						case GameConfig.EASY_TYPE:{matchesCount = 1};break;
+						case GameConfig.EASY_TYPE:{matchesCount = 2};break;
 						case GameConfig.NORMAL_TYPE:{matchesCount = 8};break;
 						case GameConfig.HARD_TYPE:{matchesCount = 6};break;
 					}
@@ -318,8 +326,8 @@ package cn.sftech.www.view
 		private function gameTimerHandle(event : TimerEvent) : void
 		{
 			lightBox.process = gameTimer.currentCount / gameTimerLine;
-			if(gameTimer.currentCount == gameTimerLine) {
-				gameOver();
+			if(gameTimer.currentCount >= gameTimerLine) {
+				gameOver(true);
 				gameTimer.stop();
 				gameTimer.removeEventListener(TimerEvent.TIMER,gameTimerHandle);
 			}
@@ -499,13 +507,17 @@ package cn.sftech.www.view
 							createCoinTimer.start();
 							createBatchCount = 0;
 							
+							if(gameTimer) {
+								gameTimer.start();
+							}
+							
 							if(_model.currentGameMode == 1) {
 								if(maskPane.propsCount == 0) {
 									nextLevel();
 								}
 							} else {
 								if(matchesCount == 0) {
-									gameOver();
+									gameOver(true);
 									return;
 								}
 							}
@@ -756,6 +768,10 @@ package cn.sftech.www.view
 		 */		
 		private function startKindle(event : TimerEvent) : void
 		{
+			if(gameTimer) {
+				gameTimer.stop();
+			}
+			
 			isFiring = true;
 			currentColorFlag = Lead.GREEN_COLOR;
 			
@@ -980,20 +996,52 @@ package cn.sftech.www.view
 		}
 		/**
 		 * 游戏结束方法
-		 * 
+		 * @value 如果按照游戏规则，游戏失败，则传入true 否则为false
 		 */		
-		private function gameOver() : void
+		private function gameOver(value : Boolean) : void
 		{
-			this.removeEventListener(MouseEvent.MOUSE_DOWN,clickLeadHandle);
+			if(value) {
+				this.isGameOver = true;
+				if(gameTimer) {
+					gameTimer.stop();
+				}
+			} else {
+				this.isPausing = true;
+				if(gameTimer) {
+					gameTimer.stop();
+				}
+			}
 			
-			var gameOverPage : GameOverPage = new GameOverPage();
-			gameOverPage.addEventListener(GameOverEvent.GAME_OVER_EVENT,gameEventHandle);
+			gameOverPage = new GameOverPage();
+			gameOverPage.addEventListener(GameOverEvent.GAME_OVER_EVENT,gameOverEventHandle);
 			this.addChild(gameOverPage);
 		}
 		
-		private function gameEventHandle(event : GameOverEvent) : void
+		private function gameOverEventHandle(event : GameOverEvent) : void
 		{
+			gameOverPage.removeEventListener(GameOverEvent.GAME_OVER_EVENT,gameOverEventHandle);
+			this.removeChild(gameOverPage);
+			gameOverPage = null;
 			
+			switch(event.data) {
+				case 1 :{//上传积分并返回主菜单
+					DataManager.saveScore(maskPane.gameScore);
+					leave();
+				};break;
+				case 2 :{//重新开始
+					isPausing = false;
+					restartGame();
+				};break;
+				case 3 :{//返回主菜单
+					leave();
+				};break;
+				case 4 :{//返回游戏
+					isPausing = false;
+					if(gameTimer) {
+						gameTimer.start();
+					}
+				}break;
+			}
 		}
 		
 		/**
@@ -1004,9 +1052,25 @@ package cn.sftech.www.view
 		private function pauseGame(event : MouseEvent) : void
 		{
 			isPausing = true;
+			if(gameTimer) {
+				gameTimer.stop();
+			}
+			
 			pauseGamePage = new PausePage();
 			pauseGamePage.addEventListener(CloseTipEvent.CLOSE_TIP_EVENT,resumeGame);
 			this.addChild(pauseGamePage);
+		}
+		/**
+		 * 重新开始游戏
+		 * 
+		 */		
+		private function restartGame() : void
+		{
+			initMode();
+			if(_model.currentGameMode == 1) {
+				lightBox.process = 0;
+			}
+			refreshMap();
 		}
 		/**
 		 * 退出游戏
@@ -1015,7 +1079,7 @@ package cn.sftech.www.view
 		 */		
 		private function exitGame(event : MouseEvent) : void
 		{
-			
+			gameOver(false);
 		}
 		/**
 		 * 回到游戏
@@ -1025,6 +1089,11 @@ package cn.sftech.www.view
 		{
 			this.removeChild(pauseGamePage);
 			pauseGamePage = null;
+			
+			isPausing = false;
+			if(gameTimer) {
+				gameTimer.start();
+			}
 		}
 		/**
 		 * 下一关
@@ -1033,17 +1102,13 @@ package cn.sftech.www.view
 		{
 			maskPane.propsCount = 9 + _model.currentLv;
 			
-			for(var i : int = 0;i < ROW_COUNT;i++) {
-				for(var j : int = 1;j < COL_COUNT-1;j++) {
-					trace(j + "???" + i);
-					removeLead(leadArr[i][j]);
-				}
-			}
+			gameTimer.reset();
+			lightBox.process = 0;
 			
-			createLeadMap();
+			refreshMap();
 		}
 		
-		private function leave(event : MouseEvent) : void
+		private function leave() : void
 		{
 			for(var i : int = 0;i < ROW_COUNT;i++) {
 				for(var j : int = 0;j < COL_COUNT;j++) {
@@ -1055,7 +1120,7 @@ package cn.sftech.www.view
 			createCoinTimer.removeEventListener(TimerEvent.TIMER_COMPLETE,createCoinAndMatchesHandle);
 			maskPane.boxBtn.removeEventListener(MouseEvent.CLICK,buyCracker);
 			pauseBtn.removeEventListener(MouseEvent.CLICK,pauseGame);
-			backBtn.removeEventListener(MouseEvent.CLICK,leave);
+			exitBtn.removeEventListener(MouseEvent.CLICK,exitGame);
 			
 			this.removeChild(pillarPane);
 			this.removeChild(leadPane);
@@ -1065,11 +1130,22 @@ package cn.sftech.www.view
 			this.removeChild(fireworksPane);
 			
 			this.removeChild(pauseBtn);
-			this.removeChild(backBtn);
+			this.removeChild(exitBtn);
 			
 			var changePageEvent : ChangePageEvent = new ChangePageEvent();
 			changePageEvent.data = ChangePageEvent.TO_MAIN_PAGE;
 			this.dispatchEvent(changePageEvent);
+		}
+		
+		private function refreshMap() : void
+		{
+			for(var i : int = 0;i < ROW_COUNT;i++) {
+				for(var j : int = 1;j < COL_COUNT-1;j++) {
+					removeLead(leadArr[i][j]);
+				}
+			}
+			
+			createLeadMap();
 		}
 		
 		private function removeLead(lead : Lead) : void
@@ -1085,7 +1161,9 @@ package cn.sftech.www.view
 		{
 			if(helpPage) return;
 			
-			if(_model.showHelp) {
+			var showHelpFlag : Boolean = _model.currentGameMode == 1?_model.showHelp_01:_model.showHelp_02;
+			
+			if(showHelpFlag) {
 				if(gameTimer) {
 					gameTimer.stop();
 				}
@@ -1158,8 +1236,7 @@ package cn.sftech.www.view
 		
 		private function closeHelp() : void
 		{
-			_model.showHelp = false;
-			if(_model.currentGameMode == 1) {
+			if(gameTimer) {
 				gameTimer.start();
 			}
 		}

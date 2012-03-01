@@ -26,7 +26,11 @@ package cn.sftech.www.view
 			body.yesBtn.removeEventListener(MouseEvent.CLICK,closeShowHelp);
 			body.noBtn.removeEventListener(MouseEvent.CLICK,showHelp);
 			
-			_model.showHelp = false;
+			if(_model.currentGameMode == 1) {
+				_model.showHelp_01 = false;
+			} else {
+				_model.showHelp_02 = false;
+			}
 			this.dispatchEvent(new CloseTipEvent());
 		}
 		
@@ -34,7 +38,11 @@ package cn.sftech.www.view
 			body.yesBtn.removeEventListener(MouseEvent.CLICK,closeShowHelp);
 			body.noBtn.removeEventListener(MouseEvent.CLICK,showHelp);
 			
-			_model.showHelp = true;
+			if(_model.currentGameMode == 1) {
+				_model.showHelp_01 = true;
+			} else {
+				_model.showHelp_02 = true;
+			}
 			this.dispatchEvent(new CloseTipEvent());
 		}
 	}

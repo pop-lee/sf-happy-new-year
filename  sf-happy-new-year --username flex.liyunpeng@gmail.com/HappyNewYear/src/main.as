@@ -56,19 +56,12 @@ package
 			logo.height = this.height;
 			addChild(logo);
 			
-			MttService.initialize(root, "D5FE393C02DB836FFDE413B8794056ED","941");
-			MttService.addEventListener(MttService.ETLOGOUT, onLogout);
+			DataManager.init(this.stage.root);
 			
-			initData();
-			
-		}
-		
-		private function initData() : void
-		{
-			var dataManager : DataManager = new DataManager();
 			SFApplication.application.addEventListener(SFInitializeDataEvent.INITIALIZE_DATA_EVENT,initializedData);
-//			dataManager.initData();
-			initializedData(new SFInitializeDataEvent());
+			DataManager.initData();
+//			initializedData(new SFInitializeDataEvent());
+			
 		}
 		
 		private function initializedData(event : SFInitializeDataEvent) : void
