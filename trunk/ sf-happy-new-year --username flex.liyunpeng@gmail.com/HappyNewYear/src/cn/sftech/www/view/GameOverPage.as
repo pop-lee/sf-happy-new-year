@@ -1,5 +1,7 @@
 package cn.sftech.www.view
 {
+	import cn.sftech.www.events.GameOverEvent;
+	
 	import flash.display.MovieClip;
 	import flash.events.MouseEvent;
 	
@@ -14,6 +16,7 @@ package cn.sftech.www.view
 			body = new GameOverPane();
 			body.submitScroeBtn.addEventListener(MouseEvent.CLICK,submitScroe);
 			body.restarGameBtn.addEventListener(MouseEvent.CLICK,restartGame);
+			body.exitBtn.addEventListener(MouseEvent.CLICK,exitGame);
 			body.backBtn.addEventListener(MouseEvent.CLICK,backHandle);
 			this.addChild(body);
 		}
@@ -29,17 +32,30 @@ package cn.sftech.www.view
 		
 		private function submitScroe(event : MouseEvent) : void
 		{
-			
+			var gameOverEvent:GameOverEvent = new GameOverEvent();
+			gameOverEvent.data = 1;
+			this.dispatchEvent(gameOverEvent);
 		}
 		
 		private function restartGame(event : MouseEvent) : void
 		{
-			
+			var gameOverEvent:GameOverEvent = new GameOverEvent();
+			gameOverEvent.data = 2;
+			this.dispatchEvent(gameOverEvent);
+		}
+		
+		private function exitGame(event : MouseEvent) : void
+		{
+			var gameOverEvent:GameOverEvent = new GameOverEvent();
+			gameOverEvent.data = 3;
+			this.dispatchEvent(gameOverEvent);
 		}
 		
 		private function backHandle(event : MouseEvent) : void
 		{
-			
+			var gameOverEvent:GameOverEvent = new GameOverEvent();
+			gameOverEvent.data = 4;
+			this.dispatchEvent(gameOverEvent);
 		}
 	}
 }

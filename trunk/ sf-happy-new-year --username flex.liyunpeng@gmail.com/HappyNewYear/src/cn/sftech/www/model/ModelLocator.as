@@ -34,7 +34,9 @@ package cn.sftech.www.model
 		/**
 		 * 是否显示帮助提示
 		 */		
-		public var showHelp : Boolean = true;
+		public var showHelp_01 : Boolean = true;
+		
+		public var showHelp_02 : Boolean = true;
 		
 		public var currentLv : uint = 0;
 		//=================================
